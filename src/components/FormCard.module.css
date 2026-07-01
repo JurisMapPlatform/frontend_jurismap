@@ -1,0 +1,271 @@
+.card {
+  background: var(--bg-card);
+  border-radius: var(--radius-lg);
+  padding: 40px;
+  width: 100%;
+  max-width: 440px;
+  box-shadow: var(--shadow-md);
+}
+
+.title {
+  font-size: 22px;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.subtitle {
+  font-size: 14px;
+  color: var(--text-secondary);
+  margin-bottom: 28px;
+}
+
+.field {
+  margin-bottom: 18px;
+}
+
+.label {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  margin-bottom: 6px;
+}
+
+.input {
+  width: 100%;
+  padding: 12px 14px;
+  font-size: 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg-input);
+  transition: border-color 0.15s;
+}
+
+.input:focus {
+  border-color: var(--border-focus);
+}
+
+.inputError {
+  border-color: var(--error);
+  background: var(--error-bg);
+}
+
+.error {
+  font-size: 12px;
+  color: var(--error);
+  margin-top: 4px;
+}
+
+.globalError {
+  font-size: 13px;
+  color: var(--error);
+  margin-bottom: 16px;
+  padding: 10px 14px;
+  background: var(--error-bg);
+  border-radius: var(--radius-sm);
+}
+
+.btn {
+  width: 100%;
+  padding: 14px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #fff;
+  background: var(--accent);
+  border-radius: var(--radius-md);
+  transition: background 0.15s;
+  margin-top: 8px;
+}
+
+.btn:hover {
+  background: var(--accent-hover);
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 20px 0;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.divider::before, .divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+.googleBtn {
+  width: 100%;
+  padding: 12px;
+  font-size: 14px;
+  font-weight: 500;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  transition: background 0.15s;
+  color: var(--text-primary);
+}
+
+.googleBtn:hover {
+  background: var(--bg-primary);
+}
+
+.googleContainer {
+  display: flex;
+  justify-content: center;
+}
+
+.footer {
+  text-align: center;
+  margin-top: 24px;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.footerLink {
+  font-weight: 600;
+  text-decoration: underline;
+}
+
+.strengthBar {
+  height: 3px;
+  border-radius: 2px;
+  margin-top: 6px;
+  transition: width 0.3s;
+}
+
+.textRight {
+  text-align: right;
+  margin-top: 6px;
+}
+
+.smallLink {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.smallLink:hover {
+  color: var(--text-primary);
+}
+
+.checkRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+}
+
+.checkRow input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--accent);
+}
+
+.checkRow a {
+  text-decoration: underline;
+}
+
+.infoBox {
+  text-align: center;
+  padding: 30px 20px;
+}
+
+.infoIcon {
+  margin-bottom: 16px;
+  color: var(--text-muted);
+}
+
+.infoTitle {
+  font-size: 18px;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.infoText {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  margin-bottom: 4px;
+}
+
+.emailChip {
+  display: inline-block;
+  padding: 6px 16px;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  font-size: 13px;
+  margin: 12px 0;
+  color: var(--text-primary);
+}
+
+.bold {
+  font-weight: 700;
+}
+
+.backLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 20px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.backLink:hover {
+  color: var(--text-primary);
+}
+
+.stepsRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.stepTitle {
+  font-size: 13px;
+  color: var(--text-secondary);
+  flex: 1;
+}
+
+.stepDot {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.stepActive {
+  background: var(--accent);
+  color: #fff;
+}
+
+.stepInactive {
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+}
+
+.stepLine {
+  width: 24px;
+  height: 1px;
+  background: var(--border);
+}

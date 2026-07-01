@@ -1,0 +1,217 @@
+.page {
+  width: 100%;
+}
+
+.top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 32px;
+}
+
+.date {
+  font-size: 13px;
+  color: var(--text-muted);
+  text-transform: capitalize;
+  margin-bottom: 4px;
+}
+
+.greeting {
+  font-size: 28px;
+  font-weight: 700;
+}
+
+.sub {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-top: 4px;
+}
+
+.newBtn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 24px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  border-radius: var(--radius-md);
+  transition: background 0.15s;
+}
+
+.newBtn:hover {
+  background: var(--accent-hover);
+}
+
+.statsRow {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20px;
+  margin-bottom: 32px;
+}
+
+.statCard {
+  background: var(--bg-card);
+  border-radius: var(--radius-md);
+  padding: 24px;
+  box-shadow: var(--shadow-sm);
+}
+
+.statNum {
+  display: block;
+  font-size: 32px;
+  font-weight: 700;
+}
+
+.statLabel {
+  font-size: 12px;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  margin-top: 4px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+}
+
+.section {
+  background: var(--bg-card);
+  border-radius: var(--radius-md);
+  padding: 28px;
+  box-shadow: var(--shadow-sm);
+}
+
+.sectionHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.sectionTitle {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.seeAll {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.seeAll:hover {
+  color: var(--text-primary);
+}
+
+.analysisList {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.analysisItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 12px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.analysisItem:hover {
+  background: var(--bg-primary);
+}
+
+.analysisInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.analysisTitle {
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.analysisMeta {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.statusBadge {
+  font-size: 11px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.empty {
+  font-size: 13px;
+  color: var(--text-muted);
+  text-align: center;
+  padding: 32px 0;
+}
+
+.actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.actionCard {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px;
+  border-radius: var(--radius-sm);
+  text-align: left;
+  color: var(--text-primary);
+  transition: background 0.15s;
+}
+
+.actionCard:hover:not(:disabled) {
+  background: var(--bg-primary);
+}
+
+.actionCard:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.actionCard strong {
+  font-size: 13px;
+  display: block;
+}
+
+.actionCard p {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+@media (max-width: 1024px) {
+  .statsRow {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .top {
+    flex-direction: column;
+    gap: 16px;
+  }
+  .statsRow {
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+  .greeting {
+    font-size: 22px;
+  }
+}

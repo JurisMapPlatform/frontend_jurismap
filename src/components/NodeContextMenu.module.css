@@ -1,0 +1,82 @@
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 150;
+}
+
+.menu {
+  position: fixed;
+  z-index: 151;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  padding: 4px;
+  min-width: 200px;
+}
+
+.menuItem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 12px;
+  font-size: 13px;
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  text-align: left;
+}
+
+.menuItem:hover {
+  background: var(--bg-primary);
+}
+
+.danger {
+  color: var(--error);
+}
+
+.separator {
+  height: 1px;
+  background: var(--border);
+  margin: 4px 0;
+}
+
+.renameBox {
+  padding: 10px;
+}
+
+.renameInput {
+  width: 100%;
+  padding: 8px 10px;
+  font-size: 13px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  margin-bottom: 8px;
+}
+
+.renameInput:focus {
+  border-color: var(--border-focus);
+}
+
+.renameBtns {
+  display: flex;
+  gap: 6px;
+  justify-content: flex-end;
+}
+
+.renameSave {
+  padding: 6px 14px;
+  font-size: 12px;
+  background: var(--accent);
+  color: #fff;
+  border-radius: var(--radius-sm);
+  font-weight: 500;
+}
+
+.renameCancel {
+  padding: 6px 14px;
+  font-size: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+}

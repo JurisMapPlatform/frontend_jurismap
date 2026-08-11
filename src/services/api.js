@@ -15,10 +15,20 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
+// Endpoints donde un 401 significa "credenciales inválidas" (no una sesión expirada):
+// en esos casos NO redirigimos ni recargamos; dejamos que la pantalla muestre el error.
+const AUTH_SUBMIT_ENDPOINTS = [
+  '/auth/login', '/auth/register', '/auth/google',
+  '/auth/forgot-password', '/auth/reset-password',
+];
+
 api.interceptors.response.use(
   (res) => res,
   (err) => {
-    if (err.response?.status === 401) {
+    const url = err.config?.url || '';
+    const isAuthSubmit = AUTH_SUBMIT_ENDPOINTS.some((e) => url.includes(e));
+    if (err.response?.status === 401 && !isAuthSubmit) {
+      // Sesión expirada o token inválido en un endpoint protegido: cerrar sesión y volver a login.
       localStorage.removeItem('token');
       localStorage.removeItem('user');
       window.location.href = '/login';

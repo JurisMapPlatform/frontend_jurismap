@@ -327,7 +327,8 @@ function MindMapInner() {
       pdf.rect(0, 0, IMAGE_WIDTH, IMAGE_HEIGHT, 'F');
       pdf.addImage(dataUrl, 'PNG', 0, 0, IMAGE_WIDTH, IMAGE_HEIGHT);
 
-      if (analysis?.findings?.length > 0) {
+      const relevantes = (analysis?.findings || []).filter((f) => f.is_selected);
+      if (relevantes.length > 0) {
         pdf.addPage([842, 595], 'portrait');
         pdf.setFont('helvetica', 'bold');
         pdf.setFontSize(20);
@@ -335,7 +336,7 @@ function MindMapInner() {
 
         let y = 80;
         pdf.setFontSize(11);
-        for (const f of analysis.findings) {
+        for (const f of relevantes) {
           if (y > 550) { pdf.addPage([842, 595], 'portrait'); y = 50; }
           pdf.setFont('helvetica', 'bold');
           pdf.text(`Fundamento ${f.fundamento_num}`, 40, y);

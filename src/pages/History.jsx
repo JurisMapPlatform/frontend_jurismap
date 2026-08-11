@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Filter, Plus, Trash2, Download, ArrowRight, FileText, AlertTriangle, Clock } from 'lucide-react';
+import { Search, Filter, Plus, Trash2, Download, ArrowRight, FileText, AlertTriangle, Clock, Pencil, Check } from 'lucide-react';
 import useAnalysisStore from '../store/analysisStore';
 import styles from './History.module.css';
 
@@ -12,11 +12,21 @@ const statusConfig = {
 };
 
 export default function History() {
-  const { analyses, fetchAnalyses, deleteAnalysis } = useAnalysisStore();
+  const { analyses, fetchAnalyses, deleteAnalysis, renameAnalysis } = useAnalysisStore();
   const [search, setSearch] = useState('');
   const [confirmDelete, setConfirmDelete] = useState(null);
   const [selected, setSelected] = useState(null);
+  const [renaming, setRenaming] = useState(false);
+  const [newTitle, setNewTitle] = useState('');
   const navigate = useNavigate();
+
+  const handleRename = async () => {
+    const t = newTitle.trim();
+    if (!t || !selected || t === selected.title) { setRenaming(false); return; }
+    await renameAnalysis(selected.id, t);
+    setSelected({ ...selected, title: t });
+    setRenaming(false);
+  };
 
   useEffect(() => { fetchAnalyses(); }, []);
 
@@ -64,7 +74,7 @@ export default function History() {
               const isSelected = selected?.id === a.id;
               return (
                 <div key={a.id} className={`${styles.item} ${isSelected ? styles.itemSelected : ''}`}
-                  onClick={() => setSelected(a)}>
+                  onClick={() => { setSelected(a); setRenaming(false); }}>
                   <div className={styles.itemDot} style={{ background: st.color }} />
                   <div className={styles.itemContent}>
                     <span className={styles.itemTitle}>{a.title || 'Análisis sin nombre'}</span>
@@ -96,7 +106,21 @@ export default function History() {
       <div className={styles.detail}>
         {selected ? (
           <>
-            <h2 className={styles.detailTitle}>{selected.title || 'Análisis sin nombre'}</h2>
+            {renaming ? (
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 8 }}>
+                <input autoFocus value={newTitle} onChange={(e) => setNewTitle(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleRename()}
+                  style={{ flex: 1, padding: '6px 10px', border: '1px solid var(--border)', borderRadius: 6, font: 'inherit' }} />
+                <button className={styles.iconBtn} onClick={handleRename} title="Guardar"><Check size={16} /></button>
+              </div>
+            ) : (
+              <h2 className={styles.detailTitle} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                {selected.title || 'Análisis sin nombre'}
+                <button className={styles.iconBtn} onClick={() => { setNewTitle(selected.title || ''); setRenaming(true); }} title="Renombrar">
+                  <Pencil size={14} />
+                </button>
+              </h2>
+            )}
             <div className={styles.detailMeta}>
               <span>{formatDate(selected.created_at)}</span>
               <span>{selected.document_count || 0} documentos · {selected.node_count || 0} nodos</span>

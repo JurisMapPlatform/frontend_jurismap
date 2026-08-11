@@ -169,6 +169,7 @@ function MindMapInner() {
   const [regenerating, setRegenerating] = useState(false);
   const saveTimer = useRef(null);
   const rawDataRef = useRef(null);
+  const [collapsed, setCollapsed] = useState(() => new Set());
 
   useEffect(() => {
     analysisApi.detail(id).then(({ data }) => {
@@ -224,6 +225,41 @@ function MindMapInner() {
     setSelectedNode(null);
     setContextMenu(null);
   }, []);
+
+  // HU-15: colapsar/expandir el subárbol de un nodo (ocultar/mostrar sus descendientes)
+  const getDescendants = useCallback((nodeId, eds) => {
+    const childrenMap = {};
+    eds.forEach((e) => { (childrenMap[e.source] = childrenMap[e.source] || []).push(e.target); });
+    const result = new Set();
+    const stack = [...(childrenMap[nodeId] || [])];
+    while (stack.length) {
+      const cur = stack.pop();
+      if (result.has(cur)) continue;
+      result.add(cur);
+      (childrenMap[cur] || []).forEach((c) => stack.push(c));
+    }
+    return result;
+  }, []);
+
+  const toggleCollapse = useCallback((nodeId) => {
+    setCollapsed((prev) => {
+      const next = new Set(prev);
+      if (next.has(nodeId)) next.delete(nodeId); else next.add(nodeId);
+      const hidden = new Set();
+      next.forEach((cid) => getDescendants(cid, edges).forEach((d) => hidden.add(d)));
+      setNodes((nds) => nds.map((n) => ({
+        ...n,
+        hidden: hidden.has(n.id),
+        style: {
+          ...(NODE_STYLES[n.data?.nodeType] || NODE_STYLES.detail),
+          ...(next.has(n.id) ? { outline: '2px dashed #64748b', outlineOffset: '2px' } : {}),
+        },
+      })));
+      setEdges((eds) => eds.map((e) => ({ ...e, hidden: hidden.has(e.source) || hidden.has(e.target) })));
+      return next;
+    });
+    setContextMenu(null);
+  }, [edges, getDescendants, setNodes, setEdges]);
 
   const handleRename = async (nodeId, newLabel) => {
     setNodes((nds) => nds.map((n) => n.id === nodeId ? { ...n, data: { ...n.data, label: newLabel } } : n));
@@ -417,6 +453,7 @@ function MindMapInner() {
             onNodesChange={handleNodesChange}
             onEdgesChange={onEdgesChange}
             onNodeClick={onNodeClick}
+            onNodeDoubleClick={(_, node) => toggleCollapse(node.id)}
             onNodeContextMenu={onNodeContextMenu}
             onPaneClick={onPaneClick}
             defaultEdgeOptions={defaultEdgeOptions}
@@ -434,8 +471,10 @@ function MindMapInner() {
               x={contextMenu.x}
               y={contextMenu.y}
               node={contextMenu.node}
+              isCollapsed={collapsed.has(contextMenu.node.id)}
               onRename={handleRename}
               onDelete={handleDeleteNode}
+              onToggleCollapse={toggleCollapse}
               onViewExplanation={() => { setSelectedNode(contextMenu.node); setContextMenu(null); }}
               onClose={() => setContextMenu(null)}
             />
@@ -478,6 +517,7 @@ function MindMapInner() {
         <NodeModal
           node={selectedNode}
           analysisId={id}
+          analysis={analysis}
           findings={analysis?.findings}
           onClose={() => setSelectedNode(null)}
         />

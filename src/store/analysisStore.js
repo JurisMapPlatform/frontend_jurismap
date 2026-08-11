@@ -40,6 +40,11 @@ const useAnalysisStore = create((set, get) => ({
     set({ analyses: get().analyses.filter((a) => a.id !== id) });
   },
 
+  renameAnalysis: async (id, title) => {
+    await analysisApi.rename(id, title);
+    set({ analyses: get().analyses.map((a) => (a.id === id ? { ...a, title } : a)) });
+  },
+
   cancelAnalysis: async (id) => {
     await analysisApi.cancel(id);
     await get().fetchAnalyses();

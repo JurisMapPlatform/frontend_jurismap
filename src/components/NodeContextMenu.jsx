@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import { Eye, Pencil, Sparkles, ChevronsDownUp, Trash2 } from 'lucide-react';
+import { Eye, Pencil, ChevronsDownUp, Trash2 } from 'lucide-react';
 import styles from './NodeContextMenu.module.css';
 
-export default function NodeContextMenu({ x, y, node, onRename, onDelete, onViewExplanation, onClose }) {
+export default function NodeContextMenu({ x, y, node, isCollapsed, onRename, onDelete, onToggleCollapse, onViewExplanation, onClose }) {
   const [renaming, setRenaming] = useState(false);
   const [newLabel, setNewLabel] = useState(node.data?.label || '');
 
@@ -34,11 +34,8 @@ export default function NodeContextMenu({ x, y, node, onRename, onDelete, onView
             <button className={styles.menuItem} onClick={() => setRenaming(true)}>
               <Pencil size={14} /> Renombrar nodo
             </button>
-            <button className={styles.menuItem}>
-              <Sparkles size={14} /> Agregar sub-nodo con IA
-            </button>
-            <button className={styles.menuItem}>
-              <ChevronsDownUp size={14} /> Colapsar ramas
+            <button className={styles.menuItem} onClick={() => onToggleCollapse && onToggleCollapse(node.id)}>
+              <ChevronsDownUp size={14} /> {isCollapsed ? 'Expandir ramas' : 'Colapsar ramas'}
             </button>
             <div className={styles.separator} />
             <button className={`${styles.menuItem} ${styles.danger}`} onClick={() => onDelete(node.id)}>

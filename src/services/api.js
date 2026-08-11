@@ -69,6 +69,7 @@ export const analysisApi = {
   create: (data) => api.post('/analyses', data),
   list: (params) => api.get('/analyses', { params }),
   detail: (id) => api.get(`/analyses/${id}`),
+  rename: (id, title) => api.patch(`/analyses/${id}`, { title }),
   delete: (id) => api.delete(`/analyses/${id}`),
   cancel: (id) => api.post(`/analyses/${id}/cancel`),
   stats: () => api.get('/analyses/stats'),

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { X } from 'lucide-react';
 import styles from './NodeModal.module.css';
 
-export default function NodeModal({ node, findings, onClose }) {
+export default function NodeModal({ node, analysis, findings, onClose }) {
   const [tab, setTab] = useState('explanation');
   const metadata = node.data?.metadata || {};
   const finding = findings?.find(
@@ -12,6 +12,13 @@ export default function NodeModal({ node, findings, onClose }) {
   const summary = metadata.summary || metadata.simplified || finding?.simplified_text || null;
   const original = metadata.original || finding?.texto || null;
   const nodeType = node.data?.nodeType || 'detail';
+
+  // HU-12: referencia jurídica del nodo (sentencia de origen + fundamento + página si se conoce)
+  const refParts = [];
+  if (analysis?.title) refParts.push(analysis.title);
+  if (metadata.fundamento_num) refParts.push(`Fundamento N° ${metadata.fundamento_num}`);
+  if (finding?.page_number) refParts.push(`pág. ${finding.page_number}`);
+  const referencia = refParts.join(' · ');
 
   return (
     <div className={styles.overlay} onClick={onClose}>
@@ -60,8 +67,8 @@ export default function NodeModal({ node, findings, onClose }) {
         </div>
 
         <div className={styles.footer}>
-          {metadata.fundamento_num && (
-            <span className={styles.hint}>Fundamento N° {metadata.fundamento_num}</span>
+          {referencia && (
+            <span className={styles.hint}>📖 Referencia jurídica: {referencia}</span>
           )}
           <button className={styles.closeFooterBtn} onClick={onClose}>Cerrar</button>
         </div>

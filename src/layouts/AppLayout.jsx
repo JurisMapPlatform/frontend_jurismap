@@ -1,11 +1,18 @@
 import { Outlet, NavLink, Navigate, useNavigate, Link } from 'react-router-dom';
 import { LogOut } from 'lucide-react';
 import useAuthStore from '../store/authStore';
+import useIdleLogout from '../hooks/useIdleLogout';
 import styles from './AppLayout.module.css';
 
 export default function AppLayout() {
   const { user, token, logout } = useAuthStore();
   const navigate = useNavigate();
+
+  // HU-05: cerrar sesión tras 30 min de inactividad
+  useIdleLogout(() => {
+    logout();
+    navigate('/login');
+  }, 30);
 
   if (!token) return <Navigate to="/login" replace />;
 

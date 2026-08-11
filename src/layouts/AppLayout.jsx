@@ -30,7 +30,7 @@ export default function AppLayout() {
             <path d="M8 10h4v12H8V10zm6 0h4v12h-4V10zm6 0h4v6h-4v-6z" fill="#f5f0eb" opacity="0.9"/>
             <circle cx="23" cy="22" r="3" fill="#f5f0eb" opacity="0.6"/>
           </svg>
-          <span className={styles.logoText}>JurisMind</span>
+          <span className={styles.logoText}>JurisMap</span>
         </Link>
         <div className={styles.spacer} />
         <nav className={styles.nav}>

@@ -5,9 +5,10 @@
   background: #e8e3de;
 }
 
-/* HU-16: resaltado del nodo seleccionado (React Flow le aplica la clase .selected al hacer clic) */
+/* HU-16: resaltado del nodo seleccionado (React Flow le aplica la clase .selected al hacer clic).
+   !important para ganarle al box-shadow por defecto de React Flow, que se carga después. */
 :global(.react-flow__node.selected) {
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.7);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.85) !important;
   border-radius: 8px;
 }
 

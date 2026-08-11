@@ -170,6 +170,7 @@ function MindMapInner() {
   const saveTimer = useRef(null);
   const rawDataRef = useRef(null);
   const [collapsed, setCollapsed] = useState(() => new Set());
+  const [actionError, setActionError] = useState('');
 
   useEffect(() => {
     analysisApi.detail(id).then(({ data }) => {
@@ -308,7 +309,7 @@ function MindMapInner() {
         }
       }
       setPrompt('');
-    } catch { /* ignore */ }
+    } catch { setActionError('No se pudo generar el nodo. Inténtalo de nuevo.'); }
     setGenerating(false);
   };
 
@@ -348,7 +349,7 @@ function MindMapInner() {
       link.download = `${analysis?.title || 'mapa-mental'}.png`;
       link.href = dataUrl;
       link.click();
-    } catch { /* ignore */ }
+    } catch { setActionError('No se pudo exportar la imagen.'); }
     setExporting(false);
   };
 
@@ -386,7 +387,7 @@ function MindMapInner() {
       }
 
       pdf.save(`${analysis?.title || 'mapa-mental'}.pdf`);
-    } catch { /* ignore */ }
+    } catch { setActionError('No se pudo exportar el PDF.'); }
     setExporting(false);
   };
 
@@ -399,7 +400,7 @@ function MindMapInner() {
       rawDataRef.current = { rawNodes, rawEdges };
       setNodes(transformNodes(rawNodes, rawEdges));
       setEdges(transformEdges(rawEdges));
-    } catch { /* ignore */ }
+    } catch { setActionError('No se pudo regenerar el mapa mental.'); }
     setRegenerating(false);
   };
 
@@ -430,6 +431,13 @@ function MindMapInner() {
           </button>
         </div>
       </header>
+
+      {actionError && (
+        <div style={{ background: '#fef2f2', color: '#b91c1c', padding: '8px 16px', fontSize: 13, display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #fecaca' }}>
+          <span>{actionError}</span>
+          <button onClick={() => setActionError('')} style={{ background: 'none', border: 'none', color: '#b91c1c', cursor: 'pointer', fontWeight: 600 }}>✕</button>
+        </div>
+      )}
 
       <div className={styles.workspace}>
         <div className={styles.canvas}>

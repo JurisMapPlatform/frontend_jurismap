@@ -11,6 +11,7 @@ import NewAnalysis from './pages/NewAnalysis';
 import Processing from './pages/Processing';
 import History from './pages/History';
 import MindMap from './pages/MindMap';
+import ProtectedRoute from './components/ProtectedRoute';
 
 export default function App() {
   return (
@@ -31,7 +32,7 @@ export default function App() {
           <Route path="/history" element={<History />} />
         </Route>
 
-        <Route path="/mindmap/:id" element={<MindMap />} />
+        <Route path="/mindmap/:id" element={<ProtectedRoute><MindMap /></ProtectedRoute>} />
       </Routes>
     </BrowserRouter>
   );

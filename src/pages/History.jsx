@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Filter, Plus, Trash2, Download, ArrowRight, FileText, AlertTriangle, Clock, Pencil, Check } from 'lucide-react';
+import { Search, Plus, Trash2, Download, ArrowRight, FileText, Pencil, Check } from 'lucide-react';
 import useAnalysisStore from '../store/analysisStore';
 import styles from './History.module.css';
 
@@ -58,7 +58,6 @@ export default function History() {
           <Search size={14} />
           <input className={styles.searchInput} value={search} onChange={(e) => setSearch(e.target.value)}
             placeholder="Buscar por nombre o documento..." />
-          <button className={styles.filterBtn}><Filter size={14} /> Filtrar</button>
         </div>
 
         <p className={styles.count}>{filtered.length} análisis · ordenado por fecha (recientes primero)</p>
@@ -142,8 +141,10 @@ export default function History() {
             <div className={styles.detailSection}>
               <h3>Exportar</h3>
               <div className={styles.exportBtns}>
-                <button className={styles.exportBtn}><Download size={14} /> Imagen (PNG)</button>
-                <button className={styles.exportBtn}><FileText size={14} /> PDF completo</button>
+                <button className={styles.exportBtn} disabled={selected.status !== 'completed'}
+                  onClick={() => navigate(`/mindmap/${selected.id}`)}><Download size={14} /> Imagen (PNG)</button>
+                <button className={styles.exportBtn} disabled={selected.status !== 'completed'}
+                  onClick={() => navigate(`/mindmap/${selected.id}`)}><FileText size={14} /> PDF completo</button>
               </div>
             </div>
           </>

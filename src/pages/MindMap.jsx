@@ -357,33 +357,86 @@ function MindMapInner() {
     setExporting(true);
     try {
       const dataUrl = await getCanvasImage();
-      if (!dataUrl) return;
-      const pdf = new jsPDF({ orientation: 'landscape', unit: 'px', format: [IMAGE_WIDTH, IMAGE_HEIGHT] });
+      const pdf = new jsPDF({ unit: 'pt', format: 'a4', orientation: 'landscape' });
 
-      pdf.setFillColor(232, 227, 222);
-      pdf.rect(0, 0, IMAGE_WIDTH, IMAGE_HEIGHT, 'F');
-      pdf.addImage(dataUrl, 'PNG', 0, 0, IMAGE_WIDTH, IMAGE_HEIGHT);
+      // --- Página 1: mapa mental (horizontal, ajustado a la página) ---
+      const lW = pdf.internal.pageSize.getWidth();
+      const lH = pdf.internal.pageSize.getHeight();
+      pdf.setFont('helvetica', 'bold'); pdf.setFontSize(16); pdf.setTextColor(0, 0, 0);
+      pdf.text(analysis?.title || 'Mapa mental', 40, 40);
+      if (dataUrl) {
+        const availW = lW - 80, availH = lH - 80;
+        const ratio = IMAGE_HEIGHT / IMAGE_WIDTH;
+        let iw = availW, ih = availW * ratio;
+        if (ih > availH) { ih = availH; iw = availH / ratio; }
+        pdf.addImage(dataUrl, 'PNG', (lW - iw) / 2, 60, iw, ih);
+      }
 
-      const relevantes = (analysis?.findings || []).filter((f) => f.is_selected);
-      if (relevantes.length > 0) {
-        pdf.addPage([842, 595], 'portrait');
-        pdf.setFont('helvetica', 'bold');
-        pdf.setFontSize(20);
-        pdf.text('Explicaciones de los nodos', 40, 50);
+      // --- Páginas siguientes: contenido de los nodos, agrupado por categoría ---
+      const liveNodes = getNodes().map((n) => ({
+        id: n.id, type: n.data?.nodeType || 'detail', label: n.data?.label || '', metadata: n.data?.metadata || {},
+      }));
+      const byId = {}; liveNodes.forEach((n) => { byId[n.id] = n; });
+      const categoryNodes = liveNodes.filter((n) => n.type === 'category').sort((a, b) => {
+        const ai = CATEGORY_ORDER.findIndex((c) => a.id.startsWith(c));
+        const bi = CATEGORY_ORDER.findIndex((c) => b.id.startsWith(c));
+        return (ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi);
+      });
 
-        let y = 80;
-        pdf.setFontSize(11);
-        for (const f of relevantes) {
-          if (y > 550) { pdf.addPage([842, 595], 'portrait'); y = 50; }
-          pdf.setFont('helvetica', 'bold');
-          pdf.text(`Fundamento ${f.fundamento_num}`, 40, y);
-          y += 16;
-          pdf.setFont('helvetica', 'normal');
-          const text = f.simplified_text || f.texto || '';
-          const lines = pdf.splitTextToSize(text, 760);
-          pdf.text(lines, 40, y);
-          y += lines.length * 14 + 20;
+      pdf.addPage('a4', 'portrait');
+      const pW = pdf.internal.pageSize.getWidth();
+      const pH = pdf.internal.pageSize.getHeight();
+      const M = 45, CW = pW - M * 2;
+      let y = M;
+      pdf.setFont('helvetica', 'bold'); pdf.setFontSize(18); pdf.setTextColor(0, 0, 0);
+      pdf.text('Contenido del análisis', M, y); y += 28;
+
+      const ensure = (need) => { if (y + need > pH - M) { pdf.addPage('a4', 'portrait'); y = M; } };
+      const printed = new Set();
+
+      const printNode = (nd, indent) => {
+        const md = nd.metadata || {};
+        pdf.setFont('helvetica', 'bold'); pdf.setFontSize(11); pdf.setTextColor(0, 0, 0);
+        const tl = pdf.splitTextToSize(`- ${nd.label || ''}`, CW - indent);
+        ensure(tl.length * 14 + 6); pdf.text(tl, M + indent, y); y += tl.length * 14 + 2;
+        if (md.summary) {
+          pdf.setFont('helvetica', 'normal'); pdf.setFontSize(10); pdf.setTextColor(45, 45, 45);
+          const sl = pdf.splitTextToSize(md.summary, CW - indent - 8);
+          ensure(sl.length * 13 + 4); pdf.text(sl, M + indent + 8, y); y += sl.length * 13 + 4;
         }
+        if (md.original) {
+          pdf.setFont('helvetica', 'italic'); pdf.setFontSize(9); pdf.setTextColor(105, 105, 105);
+          const ol = pdf.splitTextToSize(`"${md.original}"`, CW - indent - 8);
+          ensure(ol.length * 12 + 6); pdf.text(ol, M + indent + 8, y); y += ol.length * 12 + 6;
+        }
+        pdf.setTextColor(0, 0, 0); y += 6;
+      };
+
+      for (const cat of categoryNodes) {
+        ensure(34);
+        pdf.setFont('helvetica', 'bold'); pdf.setFontSize(13); pdf.setTextColor(0, 112, 192);
+        const hl = pdf.splitTextToSize(cat.label || 'Categoría', CW);
+        pdf.text(hl, M, y); y += hl.length * 16 + 4; pdf.setTextColor(0, 0, 0);
+        const desc = [...getDescendants(cat.id, edges)];
+        let any = false;
+        for (const did of desc) {
+          const nd = byId[did]; if (!nd) continue;
+          printNode(nd, 10); printed.add(did); any = true;
+        }
+        if (!any) {
+          pdf.setFont('helvetica', 'italic'); pdf.setFontSize(10); pdf.setTextColor(120, 120, 120);
+          ensure(16); pdf.text('(sin detalle)', M + 10, y); y += 18; pdf.setTextColor(0, 0, 0);
+        }
+        y += 8;
+      }
+
+      // Nodos con contenido que no cuelgan de una categoría (p. ej. agregados con IA)
+      const leftovers = liveNodes.filter((n) => n.type !== 'central' && n.type !== 'category'
+        && !printed.has(n.id) && (n.metadata?.summary || n.metadata?.original));
+      if (leftovers.length) {
+        ensure(30); pdf.setFont('helvetica', 'bold'); pdf.setFontSize(13); pdf.setTextColor(0, 112, 192);
+        pdf.text('Otros nodos', M, y); y += 20; pdf.setTextColor(0, 0, 0);
+        leftovers.forEach((n) => printNode(n, 10));
       }
 
       pdf.save(`${analysis?.title || 'mapa-mental'}.pdf`);

@@ -20,8 +20,12 @@ const defaultEdgeOptions = {
   style: { stroke: '#94a3b8', strokeWidth: 1.5 },
 };
 
-const IMAGE_WIDTH = 4096;
-const IMAGE_HEIGHT = 3072;
+// 2048x1536 (~3.1 MP): nítido para A4 y dentro del límite de rasterización SVG→imagen del
+// navegador. Valores mayores (p. ej. 4096x3072) hacen que html-to-image nunca dispare onload
+// y la exportación quede colgada.
+const IMAGE_WIDTH = 2048;
+const IMAGE_HEIGHT = 1536;
+const CANVAS_TIMEOUT_MS = 20000;
 
 const NODE_STYLES = {
   central: {
@@ -328,16 +332,24 @@ function MindMapInner() {
     const viewport = getViewportForBounds(bounds, IMAGE_WIDTH, IMAGE_HEIGHT, 0.5, 2, 0.2);
     const el = document.querySelector('.react-flow__viewport');
     if (!el) return null;
-    return toPng(el, {
+    const render = toPng(el, {
       backgroundColor: '#e8e3de',
       width: IMAGE_WIDTH,
       height: IMAGE_HEIGHT,
+      pixelRatio: 1,
+      skipFonts: true,          // evita descargar/incrustar fuentes externas (fuente de 404 y lentitud)
+      filter: (n) => n?.tagName !== 'IFRAME' && n?.tagName !== 'SCRIPT',
       style: {
         width: `${IMAGE_WIDTH}px`,
         height: `${IMAGE_HEIGHT}px`,
         transform: `translate(${viewport.x}px, ${viewport.y}px) scale(${viewport.zoom})`,
       },
     });
+    // Timeout de seguridad: si el navegador no logra rasterizar, no dejamos la UI colgada.
+    const timeout = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('canvas-timeout')), CANVAS_TIMEOUT_MS)
+    );
+    return Promise.race([render, timeout]);
   };
 
   const handleExportImage = async () => {
@@ -356,7 +368,8 @@ function MindMapInner() {
   const handleExportPDF = async () => {
     setExporting(true);
     try {
-      const dataUrl = await getCanvasImage();
+      let dataUrl = null;
+      try { dataUrl = await getCanvasImage(); } catch { dataUrl = null; } // si la imagen falla, seguimos con el contenido
       const pdf = new jsPDF({ unit: 'pt', format: 'a4', orientation: 'landscape' });
 
       // --- Página 1: mapa mental (horizontal, ajustado a la página) ---
@@ -370,6 +383,10 @@ function MindMapInner() {
         let iw = availW, ih = availW * ratio;
         if (ih > availH) { ih = availH; iw = availH / ratio; }
         pdf.addImage(dataUrl, 'PNG', (lW - iw) / 2, 60, iw, ih);
+      } else {
+        pdf.setFont('helvetica', 'italic'); pdf.setFontSize(11); pdf.setTextColor(120, 120, 120);
+        pdf.text('No se pudo generar la imagen del mapa; a continuación se incluye el contenido.', 40, 80);
+        pdf.setTextColor(0, 0, 0);
       }
 
       // --- Páginas siguientes: contenido de los nodos, agrupado por categoría ---
@@ -377,6 +394,20 @@ function MindMapInner() {
         id: n.id, type: n.data?.nodeType || 'detail', label: n.data?.label || '', metadata: n.data?.metadata || {},
       }));
       const byId = {}; liveNodes.forEach((n) => { byId[n.id] = n; });
+
+      // Resuelve la explicación/texto original de cada nodo con el mismo criterio que NodeModal:
+      // metadata inline o, para fundamentos, el registro correspondiente en analysis.findings.
+      const findings = analysis?.findings || [];
+      const resolveContent = (nd) => {
+        const md = nd.metadata || {};
+        const finding = findings.find(
+          (f) => f.node_id === nd.id || (md.fundamento_num && f.fundamento_num === md.fundamento_num)
+        );
+        return {
+          summary: md.summary || md.simplified || finding?.simplified_text || null,
+          original: md.original || finding?.texto || null,
+        };
+      };
       const categoryNodes = liveNodes.filter((n) => n.type === 'category').sort((a, b) => {
         const ai = CATEGORY_ORDER.findIndex((c) => a.id.startsWith(c));
         const bi = CATEGORY_ORDER.findIndex((c) => b.id.startsWith(c));
@@ -395,21 +426,37 @@ function MindMapInner() {
       const printed = new Set();
 
       const printNode = (nd, indent) => {
-        const md = nd.metadata || {};
+        const { summary, original } = resolveContent(nd);
         pdf.setFont('helvetica', 'bold'); pdf.setFontSize(11); pdf.setTextColor(0, 0, 0);
         const tl = pdf.splitTextToSize(`- ${nd.label || ''}`, CW - indent);
         ensure(tl.length * 14 + 6); pdf.text(tl, M + indent, y); y += tl.length * 14 + 2;
-        if (md.summary) {
+        if (summary) {
           pdf.setFont('helvetica', 'normal'); pdf.setFontSize(10); pdf.setTextColor(45, 45, 45);
-          const sl = pdf.splitTextToSize(md.summary, CW - indent - 8);
+          const sl = pdf.splitTextToSize(summary, CW - indent - 8);
           ensure(sl.length * 13 + 4); pdf.text(sl, M + indent + 8, y); y += sl.length * 13 + 4;
         }
-        if (md.original) {
+        if (original) {
           pdf.setFont('helvetica', 'italic'); pdf.setFontSize(9); pdf.setTextColor(105, 105, 105);
-          const ol = pdf.splitTextToSize(`"${md.original}"`, CW - indent - 8);
+          const ol = pdf.splitTextToSize(`"${original}"`, CW - indent - 8);
           ensure(ol.length * 12 + 6); pdf.text(ol, M + indent + 8, y); y += ol.length * 12 + 6;
         }
         pdf.setTextColor(0, 0, 0); y += 6;
+      };
+
+      // Descendientes en orden natural (pre-orden, respetando el orden de los hijos), para que
+      // los fundamentos aparezcan 1, 2, 3… y no invertidos como haría el Set de getDescendants.
+      const childrenMap = {};
+      edges.forEach((e) => { (childrenMap[e.source] = childrenMap[e.source] || []).push(e.target); });
+      const orderedDescendants = (rootId) => {
+        const out = [], seen = new Set();
+        const walk = (nid) => {
+          for (const c of (childrenMap[nid] || [])) {
+            if (seen.has(c)) continue;
+            seen.add(c); out.push(c); walk(c);
+          }
+        };
+        walk(rootId);
+        return out;
       };
 
       for (const cat of categoryNodes) {
@@ -417,7 +464,7 @@ function MindMapInner() {
         pdf.setFont('helvetica', 'bold'); pdf.setFontSize(13); pdf.setTextColor(0, 112, 192);
         const hl = pdf.splitTextToSize(cat.label || 'Categoría', CW);
         pdf.text(hl, M, y); y += hl.length * 16 + 4; pdf.setTextColor(0, 0, 0);
-        const desc = [...getDescendants(cat.id, edges)];
+        const desc = orderedDescendants(cat.id);
         let any = false;
         for (const did of desc) {
           const nd = byId[did]; if (!nd) continue;
@@ -431,8 +478,11 @@ function MindMapInner() {
       }
 
       // Nodos con contenido que no cuelgan de una categoría (p. ej. agregados con IA)
-      const leftovers = liveNodes.filter((n) => n.type !== 'central' && n.type !== 'category'
-        && !printed.has(n.id) && (n.metadata?.summary || n.metadata?.original));
+      const leftovers = liveNodes.filter((n) => {
+        if (n.type === 'central' || n.type === 'category' || printed.has(n.id)) return false;
+        const c = resolveContent(n);
+        return c.summary || c.original;
+      });
       if (leftovers.length) {
         ensure(30); pdf.setFont('helvetica', 'bold'); pdf.setFontSize(13); pdf.setTextColor(0, 112, 192);
         pdf.text('Otros nodos', M, y); y += 20; pdf.setTextColor(0, 0, 0);

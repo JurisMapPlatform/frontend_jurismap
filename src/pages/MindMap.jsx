@@ -175,6 +175,7 @@ function MindMapInner() {
   const rawDataRef = useRef(null);
   const [collapsed, setCollapsed] = useState(() => new Set());
   const [actionError, setActionError] = useState('');
+  const [confirmDeleteNode, setConfirmDeleteNode] = useState(null);
 
   useEffect(() => {
     analysisApi.detail(id).then(({ data }) => {
@@ -584,7 +585,7 @@ function MindMapInner() {
               node={contextMenu.node}
               isCollapsed={collapsed.has(contextMenu.node.id)}
               onRename={handleRename}
-              onDelete={handleDeleteNode}
+              onDelete={(nodeId) => { setConfirmDeleteNode({ id: nodeId, label: contextMenu.node.data?.label || '' }); setContextMenu(null); }}
               onToggleCollapse={toggleCollapse}
               onViewExplanation={() => { setSelectedNode(contextMenu.node); setContextMenu(null); }}
               onClose={() => setContextMenu(null)}
@@ -632,6 +633,34 @@ function MindMapInner() {
           findings={analysis?.findings}
           onClose={() => setSelectedNode(null)}
         />
+      )}
+
+      {/* HU-19: confirmación previa antes de eliminar un nodo */}
+      {confirmDeleteNode && (
+        <div onClick={() => setConfirmDeleteNode(null)}
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex',
+            alignItems: 'center', justifyContent: 'center', zIndex: 10000 }}>
+          <div onClick={(e) => e.stopPropagation()}
+            style={{ background: '#fff', borderRadius: 12, padding: '22px 24px', width: 'min(92vw, 380px)',
+              boxShadow: '0 10px 40px rgba(0,0,0,0.2)' }}>
+            <h3 style={{ margin: '0 0 8px', fontSize: 16, color: '#1a1a1a' }}>¿Eliminar nodo?</h3>
+            <p style={{ margin: '0 0 18px', fontSize: 14, color: '#555' }}>
+              Se eliminará «{confirmDeleteNode.label || 'este nodo'}» y sus subnodos. Esta acción no se puede deshacer.
+            </p>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+              <button onClick={() => setConfirmDeleteNode(null)}
+                style={{ padding: '8px 14px', borderRadius: 8, border: '1px solid #e5e0da', background: '#fff',
+                  cursor: 'pointer', fontSize: 14 }}>
+                Cancelar
+              </button>
+              <button onClick={() => { handleDeleteNode(confirmDeleteNode.id); setConfirmDeleteNode(null); }}
+                style={{ padding: '8px 14px', borderRadius: 8, border: 'none', background: '#dc2626', color: '#fff',
+                  cursor: 'pointer', fontSize: 14 }}>
+                Eliminar
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

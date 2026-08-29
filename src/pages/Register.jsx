@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { Eye, EyeOff } from 'lucide-react';
 import useAuthStore from '../store/authStore';
 import useGoogleAuth from '../hooks/useGoogleAuth';
 import { authApi } from '../services/api';
@@ -22,6 +23,8 @@ export default function Register() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
   const [terms, setTerms] = useState(false);
   const [fieldErrors, setFieldErrors] = useState({});
   const { register, loading, error, clearError } = useAuthStore();
@@ -85,7 +88,13 @@ export default function Register() {
 
         <div className={s.field}>
           <label className={s.label}>Contraseña</label>
-          <input type="password" className={s.input} value={password} onChange={(e) => setPassword(e.target.value)} />
+          <div className={s.passwordWrap}>
+            <input type={showPassword ? 'text' : 'password'} className={s.input} value={password} onChange={(e) => setPassword(e.target.value)} />
+            <button type="button" className={s.eyeBtn} onClick={() => setShowPassword((v) => !v)}
+              aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'} title={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}>
+              {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+            </button>
+          </div>
           {password && (
             <div className={s.strengthBar} style={{
               width: `${strength * 25}%`,
@@ -97,7 +106,13 @@ export default function Register() {
 
         <div className={s.field}>
           <label className={s.label}>Confirmar contraseña</label>
-          <input type="password" className={s.input} value={confirm} onChange={(e) => setConfirm(e.target.value)} />
+          <div className={s.passwordWrap}>
+            <input type={showConfirm ? 'text' : 'password'} className={s.input} value={confirm} onChange={(e) => setConfirm(e.target.value)} />
+            <button type="button" className={s.eyeBtn} onClick={() => setShowConfirm((v) => !v)}
+              aria-label={showConfirm ? 'Ocultar contraseña' : 'Mostrar contraseña'} title={showConfirm ? 'Ocultar contraseña' : 'Mostrar contraseña'}>
+              {showConfirm ? <EyeOff size={18} /> : <Eye size={18} />}
+            </button>
+          </div>
           {fieldErrors.confirm && <div className={s.error}>{fieldErrors.confirm}</div>}
         </div>
 

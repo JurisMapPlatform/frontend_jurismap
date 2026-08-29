@@ -43,6 +43,7 @@ export const authApi = {
   googleAuth: (credential) => api.post('/auth/google', { credential }),
   verifyEmail: (token) => api.post(`/auth/verify-email/${token}`),
   forgotPassword: (email) => api.post('/auth/forgot-password', { email }),
+  resendVerification: (email) => api.post('/auth/resend-verification', { email }),
   resetPassword: (data) => api.post('/auth/reset-password', data),
   me: () => api.get('/auth/me'),
 };

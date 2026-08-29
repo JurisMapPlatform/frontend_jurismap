@@ -10,7 +10,23 @@ export default function VerifyEmail() {
   const location = useLocation();
   const navigate = useNavigate();
   const email = location.state?.email || 'tu correo';
+  const realEmail = location.state?.email || null;
   const [status, setStatus] = useState(token ? 'verifying' : 'info');
+  const [resending, setResending] = useState(false);
+  const [resendMsg, setResendMsg] = useState('');
+
+  const handleResend = async () => {
+    if (!realEmail) return;
+    setResending(true);
+    setResendMsg('');
+    try {
+      await authApi.resendVerification(realEmail);
+      setResendMsg('Enviamos un nuevo enlace a tu correo.');
+    } catch {
+      setResendMsg('No se pudo reenviar. Intenta más tarde.');
+    }
+    setResending(false);
+  };
 
   useEffect(() => {
     if (!token) return;
@@ -67,7 +83,16 @@ export default function VerifyEmail() {
         <span className={s.emailChip}>{email}</span>
         <p className={s.infoText}>Haz clic en el enlace para activar tu cuenta.</p>
         <p className={s.infoText}>El enlace expira en <span className={s.bold}>24 horas</span>.</p>
-        <Link to="/login" className={s.backLink}>← Volver al inicio de sesión</Link>
+        {realEmail && (resendMsg
+          ? <p className={s.infoText} style={{ marginTop: 12 }}>{resendMsg}</p>
+          : (
+            <button type="button" className={s.footerLink}
+              style={{ display: 'block', margin: '12px auto 0', background: 'none', border: 'none', cursor: 'pointer' }}
+              onClick={handleResend} disabled={resending}>
+              {resending ? 'Enviando...' : '¿No lo recibiste? Reenviar correo'}
+            </button>
+          ))}
+        <div><Link to="/login" className={s.backLink}>← Volver al inicio de sesión</Link></div>
       </div>
     </div>
   );

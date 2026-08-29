@@ -52,6 +52,33 @@
   background: var(--error-bg);
 }
 
+.passwordWrap {
+  position: relative;
+}
+
+.passwordWrap .input {
+  padding-right: 42px;
+}
+
+.eyeBtn {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 4px;
+  background: none;
+  border: none;
+}
+
+.eyeBtn:hover {
+  color: var(--text-primary);
+}
+
 .error {
   font-size: 12px;
   color: var(--error);

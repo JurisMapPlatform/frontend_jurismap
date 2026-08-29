@@ -14,14 +14,32 @@ export default function NewAnalysis() {
   const [title, setTitle] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [fileError, setFileError] = useState('');
   const navigate = useNavigate();
 
   const handleFiles = useCallback(async (fileList) => {
-    const newFiles = Array.from(fileList).slice(0, MAX_FILES - files.length);
-    for (const file of newFiles) {
-      if (!file.name.toLowerCase().endsWith('.pdf')) continue;
-      if (file.size / 1024 / 1024 > MAX_SIZE_MB) continue;
+    // HU-07: validar formato/tamaño y avisar de los archivos rechazados en vez de ignorarlos en silencio.
+    const incoming = Array.from(fileList);
+    const errors = [];
+    const room = MAX_FILES - files.length;
+    const valid = [];
+    for (const file of incoming) {
+      if (!file.name.toLowerCase().endsWith('.pdf')) {
+        errors.push(`«${file.name}» no es un PDF (formato inválido).`);
+      } else if (file.size / 1024 / 1024 > MAX_SIZE_MB) {
+        errors.push(`«${file.name}» supera el límite de ${MAX_SIZE_MB} MB.`);
+      } else {
+        valid.push(file);
+      }
+    }
+    let toUpload = valid;
+    if (valid.length > room) {
+      toUpload = valid.slice(0, Math.max(0, room));
+      errors.push(`Solo puedes subir hasta ${MAX_FILES} archivos; se ignoraron los adicionales.`);
+    }
+    setFileError(errors.join(' '));
 
+    for (const file of toUpload) {
       const uid = `${Date.now()}-${Math.random()}`;
       const entry = { uid, file, name: file.name, size: file.size, status: 'uploading', id: null, validation: null };
       setFiles((prev) => [...prev, entry]);
@@ -104,6 +122,8 @@ export default function NewAnalysis() {
               ))}
             </div>
           )}
+
+          {fileError && <div className={styles.errorMsg} style={{ marginTop: 12 }}>{fileError}</div>}
         </section>
 
         <section className={styles.section}>

@@ -12,10 +12,12 @@ import Processing from './pages/Processing';
 import History from './pages/History';
 import MindMap from './pages/MindMap';
 import ProtectedRoute from './components/ProtectedRoute';
+import ProgressListener from './components/ProgressListener';
 
 export default function App() {
   return (
     <BrowserRouter>
+      <ProgressListener />
       <Routes>
         <Route element={<AuthLayout />}>
           <Route path="/login" element={<Login />} />

@@ -176,6 +176,8 @@ function MindMapInner() {
   const [collapsed, setCollapsed] = useState(() => new Set());
   const [actionError, setActionError] = useState('');
   const [confirmDeleteNode, setConfirmDeleteNode] = useState(null);
+  const [loadError, setLoadError] = useState('');
+  const [promptError, setPromptError] = useState('');
 
   useEffect(() => {
     analysisApi.detail(id).then(({ data }) => {
@@ -187,6 +189,9 @@ function MindMapInner() {
         setNodes(transformNodes(rawNodes, rawEdges));
         setEdges(transformEdges(rawEdges));
       }
+    }).catch(() => {
+      // HU-24: si falla la carga del análisis, informar en vez de dejar la pantalla vacía.
+      setLoadError('No se pudo cargar el análisis. Es posible que no exista o que haya ocurrido un problema al recuperarlo.');
     });
   }, [id]);
 
@@ -281,7 +286,12 @@ function MindMapInner() {
   };
 
   const handleGenerateNode = async () => {
-    if (!prompt.trim()) return;
+    if (!prompt.trim()) {
+      // HU-17: avisar que el prompt es obligatorio en vez de ignorar el clic en silencio.
+      setPromptError('Escribe una instrucción para generar el nodo.');
+      return;
+    }
+    setPromptError('');
     setGenerating(true);
     try {
       const body = { prompt };
@@ -516,6 +526,22 @@ function MindMapInner() {
     return '#93c5fd';
   };
 
+  // HU-24: pantalla de error si el análisis no se pudo cargar.
+  if (loadError) {
+    return (
+      <div className={styles.page} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center',
+        justifyContent: 'center', gap: 14, padding: 24, textAlign: 'center' }}>
+        <h2 style={{ fontSize: 18, fontWeight: 700, color: '#1a1a1a', margin: 0 }}>No se pudo cargar el análisis</h2>
+        <p style={{ fontSize: 14, color: '#555', maxWidth: 380, margin: 0 }}>{loadError}</p>
+        <button onClick={() => navigate('/history')}
+          style={{ padding: '10px 18px', borderRadius: 8, border: 'none', background: '#1a1a1a',
+            color: '#f5f0eb', cursor: 'pointer', fontSize: 14 }}>
+          Volver al historial
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div className={styles.page}>
       <header className={styles.toolbar}>
@@ -596,9 +622,11 @@ function MindMapInner() {
         <aside className={styles.sidebar}>
           <div className={styles.sideSection}>
             <h3 className={styles.sideLabel}>Generar nodo con IA</h3>
-            <textarea className={styles.promptInput} rows={3} value={prompt} onChange={(e) => setPrompt(e.target.value)}
+            <textarea className={styles.promptInput} rows={3} value={prompt}
+              onChange={(e) => { setPrompt(e.target.value); if (promptError) setPromptError(''); }}
               placeholder="Ej.: Agrega un nodo sobre el voto singular del magistrado..." />
-            <button className={styles.generateBtn} onClick={handleGenerateNode} disabled={generating || !prompt.trim()}>
+            {promptError && <div style={{ color: '#dc2626', fontSize: 12, marginTop: 4 }}>{promptError}</div>}
+            <button className={styles.generateBtn} onClick={handleGenerateNode} disabled={generating}>
               <Sparkles size={14} /> {generating ? 'Generando...' : '+ Generar nodo'}
             </button>
           </div>

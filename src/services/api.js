@@ -77,6 +77,7 @@ export const authApi = {
   resendVerification: (email) => api.post('/auth/resend-verification', { email }),
   resetPassword: (data) => api.post('/auth/reset-password', data),
   me: () => api.get('/auth/me'),
+  refresh: () => api.post('/auth/refresh'),
 };
 
 export const documentApi = {

@@ -1,18 +1,14 @@
-import { Outlet, Navigate, useNavigate } from 'react-router-dom';
+import { Outlet, Navigate } from 'react-router-dom';
 import useAuthStore from '../store/authStore';
-import useIdleLogout from '../hooks/useIdleLogout';
+import useSession from '../hooks/useSession';
 import AppHeader from '../components/AppHeader';
 import styles from './AppLayout.module.css';
 
 export default function AppLayout() {
-  const { token, logout } = useAuthStore();
-  const navigate = useNavigate();
+  const token = useAuthStore((s) => s.token);
 
-  // HU-05: cerrar sesión tras 30 min de inactividad
-  useIdleLogout(() => {
-    logout();
-    navigate('/login');
-  }, 30);
+  // HU-05: cierre por inactividad (30 min) y renovación del token mientras hay actividad.
+  useSession();
 
   if (!token) return <Navigate to="/login" replace />;
 

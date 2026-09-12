@@ -49,10 +49,13 @@ export default function NewAnalysis() {
         setFiles((prev) => prev.map((f) =>
           f.uid === uid ? { ...f, id: data.document.id, status: data.validation.is_valid ? 'valid' : 'invalid', validation: data.validation } : f
         ));
-      } catch {
+      } catch (err) {
+        // HU-07: mostrar el motivo del rechazo, p. ej. un archivo renombrado a .pdf que no es un PDF.
+        const reason = getErrorMessage(err, 'No se pudo subir el archivo. Inténtalo de nuevo.');
         setFiles((prev) => prev.map((f) =>
-          f.uid === uid ? { ...f, status: 'error' } : f
+          f.uid === uid ? { ...f, status: 'error', errorMsg: reason } : f
         ));
+        setFileError((prev) => [prev, `«${file.name}»: ${reason}`].filter(Boolean).join(' '));
       }
     }
   }, [files.length]);
@@ -116,7 +119,7 @@ export default function NewAnalysis() {
                   {f.status === 'uploading' && <span className={styles.uploading}>Subiendo...</span>}
                   {f.status === 'valid' && <span className={styles.valid}><Check size={14} /> Válido</span>}
                   {f.status === 'invalid' && <span className={styles.invalid}><AlertTriangle size={14} /> Sin texto legible</span>}
-                  {f.status === 'error' && <span className={styles.invalid}>Error</span>}
+                  {f.status === 'error' && <span className={styles.invalid} title={f.errorMsg}><AlertTriangle size={14} /> Rechazado</span>}
                   <button className={styles.removeBtn} onClick={() => removeFile(i)}><X size={14} /></button>
                 </div>
               ))}

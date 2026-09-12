@@ -37,6 +37,37 @@ api.interceptors.response.use(
   }
 );
 
+// Mensajes legibles para errores de validación (422) según el campo que falló.
+const FIELD_MESSAGES = {
+  email: 'El correo electrónico no tiene un formato válido. Revisa que tenga la forma nombre@dominio.com.',
+  full_name: 'El nombre debe tener al menos 2 caracteres.',
+  password: 'La contraseña debe tener al menos 8 caracteres.',
+  new_password: 'La contraseña debe tener al menos 8 caracteres.',
+};
+
+// Convierte cualquier error de la API en un TEXTO para mostrar al usuario.
+// FastAPI devuelve `detail` como texto en los errores de negocio (401, 404, 409...), pero como una
+// LISTA de objetos en los errores de validación (422). Renderizar esa lista en React tumba la
+// pantalla entera (React error #31), así que aquí siempre se devuelve un string.
+export function getErrorMessage(err, fallback = 'Ocurrió un error inesperado. Inténtalo de nuevo.') {
+  if (err?.isAxiosError && !err.response) {
+    return 'No se pudo conectar con el servidor. Revisa tu conexión e inténtalo de nuevo.';
+  }
+  const response = err?.response;
+  if (!response) return fallback;
+  if (response.status === 429) {
+    return 'Demasiados intentos seguidos. Espera un minuto e inténtalo de nuevo.';
+  }
+  const detail = response.data?.detail;
+  if (typeof detail === 'string' && detail.trim()) return detail;
+  if (Array.isArray(detail) && detail.length > 0) {
+    const loc = detail[0]?.loc || [];
+    const field = loc[loc.length - 1];
+    return FIELD_MESSAGES[field] || 'Algunos datos no son válidos. Revísalos e inténtalo de nuevo.';
+  }
+  return fallback;
+}
+
 export const authApi = {
   register: (data) => api.post('/auth/register', data),
   login: (data) => api.post('/auth/login', data),

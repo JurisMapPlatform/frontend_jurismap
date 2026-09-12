@@ -3,7 +3,8 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Eye, EyeOff } from 'lucide-react';
 import useAuthStore from '../store/authStore';
 import useGoogleAuth from '../hooks/useGoogleAuth';
-import { authApi } from '../services/api';
+import { authApi, getErrorMessage } from '../services/api';
+import { isValidEmail } from '../utils/validation';
 import s from '../components/FormCard.module.css';
 
 function getStrength(pw) {
@@ -41,7 +42,7 @@ export default function Register() {
       useAuthStore.setState({ token: data.access_token, user });
       navigate('/');
     } catch (err) {
-      useAuthStore.setState({ error: err.response?.data?.detail || 'Error con Google' });
+      useAuthStore.setState({ error: getErrorMessage(err, 'No se pudo registrar con Google. Inténtalo de nuevo.') });
     }
   };
 
@@ -50,7 +51,9 @@ export default function Register() {
   const validate = () => {
     const errs = {};
     if (!fullName.trim()) errs.fullName = 'Nombre requerido';
+    else if (fullName.trim().length < 2) errs.fullName = 'El nombre debe tener al menos 2 caracteres';
     if (!email.trim()) errs.email = 'Correo requerido';
+    else if (!isValidEmail(email)) errs.email = 'Ingresa un correo válido, por ejemplo nombre@dominio.com';
     if (password.length < 8) errs.password = 'Mínimo 8 caracteres';
     if (password !== confirm) errs.confirm = 'Las contraseñas no coinciden';
     if (!terms) errs.terms = 'Debes aceptar los términos';

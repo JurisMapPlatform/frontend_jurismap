@@ -3,7 +3,8 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Eye, EyeOff } from 'lucide-react';
 import useAuthStore from '../store/authStore';
 import useGoogleAuth from '../hooks/useGoogleAuth';
-import { authApi } from '../services/api';
+import { authApi, getErrorMessage } from '../services/api';
+import { isValidEmail } from '../utils/validation';
 import s from '../components/FormCard.module.css';
 
 export default function Login() {
@@ -24,7 +25,7 @@ export default function Login() {
       useAuthStore.setState({ token: data.access_token, user });
       navigate('/');
     } catch (err) {
-      useAuthStore.setState({ error: err.response?.data?.detail || 'Error con Google' });
+      useAuthStore.setState({ error: getErrorMessage(err, 'No se pudo iniciar sesión con Google. Inténtalo de nuevo.') });
     }
   };
 
@@ -32,6 +33,11 @@ export default function Login() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    // HU-03: un correo mal escrito (p. ej. "juan@gmail") debe mostrar un mensaje y no permitir el acceso.
+    if (!isValidEmail(email)) {
+      useAuthStore.setState({ error: 'Ingresa un correo electrónico válido, por ejemplo nombre@dominio.com.' });
+      return;
+    }
     const ok = await login(email, password);
     if (ok) navigate('/');
   };

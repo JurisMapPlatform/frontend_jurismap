@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { authApi } from '../services/api';
+import { authApi, getErrorMessage } from '../services/api';
 
 const useAuthStore = create((set) => ({
   user: JSON.parse(localStorage.getItem('user')),
@@ -17,7 +17,7 @@ const useAuthStore = create((set) => ({
       set({ token: data.access_token, user, loading: false });
       return true;
     } catch (err) {
-      set({ error: err.response?.data?.detail || 'Error al iniciar sesión', loading: false });
+      set({ error: getErrorMessage(err, 'Error al iniciar sesión'), loading: false });
       return false;
     }
   },
@@ -29,7 +29,7 @@ const useAuthStore = create((set) => ({
       set({ loading: false });
       return true;
     } catch (err) {
-      set({ error: err.response?.data?.detail || 'Error al registrarse', loading: false });
+      set({ error: getErrorMessage(err, 'Error al registrarse'), loading: false });
       return false;
     }
   },

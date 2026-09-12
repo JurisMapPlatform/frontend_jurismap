@@ -9,10 +9,10 @@
   z-index: 151;
   background: var(--bg-card);
   border: 1px solid var(--border);
-  border-radius: var(--radius-md);
+  border-radius: 14px;
   box-shadow: var(--shadow-lg);
-  padding: 4px;
-  min-width: 200px;
+  padding: 6px;
+  min-width: 208px;
 }
 
 .menuItem {
@@ -21,8 +21,8 @@
   gap: 10px;
   width: 100%;
   padding: 10px 12px;
-  font-size: 13px;
-  border-radius: var(--radius-sm);
+  font-size: 13.5px;
+  border-radius: 8px;
   color: var(--text-primary);
   text-align: left;
 }
@@ -68,8 +68,8 @@
   padding: 6px 14px;
   font-size: 12px;
   background: var(--accent);
-  color: #fff;
-  border-radius: var(--radius-sm);
+  color: var(--on-accent);
+  border-radius: 8px;
   font-weight: 500;
 }
 

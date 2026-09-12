@@ -3,22 +3,17 @@ import { useParams, useNavigate } from 'react-router-dom';
 import {
   ReactFlow, Background, Controls, MiniMap,
   useNodesState, useEdgesState, useReactFlow, ReactFlowProvider,
-  getNodesBounds, getViewportForBounds, MarkerType,
+  getNodesBounds, getViewportForBounds, Position,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { toPng } from 'html-to-image';
 import { jsPDF } from 'jspdf';
-import { ArrowLeft, Pencil, Image, FileText, Sparkles, Download, RefreshCw } from 'lucide-react';
+import { ArrowLeft, LayoutGrid, Image, FileText, Sparkles, Plus, Download, RefreshCw } from 'lucide-react';
 import { analysisApi, mindmapApi } from '../services/api';
+import AppHeader from '../components/AppHeader';
 import NodeModal from '../components/NodeModal';
 import NodeContextMenu from '../components/NodeContextMenu';
 import styles from './MindMap.module.css';
-
-const defaultEdgeOptions = {
-  type: 'smoothstep',
-  markerEnd: { type: MarkerType.ArrowClosed },
-  style: { stroke: '#94a3b8', strokeWidth: 1.5 },
-};
 
 // 2048x1536 (~3.1 MP): nítido para A4 y dentro del límite de rasterización SVG→imagen del
 // navegador. Valores mayores (p. ej. 4096x3072) hacen que html-to-image nunca dispare onload
@@ -26,36 +21,122 @@ const defaultEdgeOptions = {
 const IMAGE_WIDTH = 2048;
 const IMAGE_HEIGHT = 1536;
 const CANVAS_TIMEOUT_MS = 20000;
+const CANVAS_BG = '#eceff4';
+
+const CATEGORY_ORDER = ['materia', 'partes', 'pretension', 'antecedentes', 'fundamentos', 'fallo', 'votos'];
+
+/* ---------- Paleta del mapa (solo presentación) ---------- */
+const INK = '#1b2c4a';
+const GOLD = '#b1863a';
+const NEUTRAL = '#5a6577';
+
+const CATEGORY_COLORS = {
+  materia: '#4a6a99',
+  partes: '#3f7d72',
+  pretension: '#6a5a92',
+  antecedentes: '#b0863f',
+  fundamentos: '#9a4a58',
+  fallo: GOLD,
+  votos: '#4a7d55',
+};
+
+const SUB_COLORS = {
+  fundamento: '#b0863f',
+  detail: '#4a6a99',
+  ai_generated: '#6a5a92',
+};
+
+const hexToRgb = (h) => {
+  const s = h.replace('#', '');
+  return [0, 2, 4].map((i) => parseInt(s.slice(i, i + 2), 16));
+};
+
+const mixHex = (a, b, t) => {
+  const A = hexToRgb(a), B = hexToRgb(b);
+  return '#' + A.map((v, i) => Math.round(v * (1 - t) + B[i] * t).toString(16).padStart(2, '0')).join('');
+};
+
+const categoryColor = (nodeId) => {
+  const key = CATEGORY_ORDER.find((c) => String(nodeId).startsWith(c));
+  return (key && CATEGORY_COLORS[key]) || NEUTRAL;
+};
+
+const nodeColor = (rawNode) => {
+  const t = rawNode.type || 'detail';
+  if (t === 'central') return INK;
+  if (t === 'category') return categoryColor(rawNode.id);
+  return SUB_COLORS[t] || SUB_COLORS.detail;
+};
 
 const NODE_STYLES = {
   central: {
-    background: '#1e293b', color: '#fff', fontWeight: 700,
-    padding: '14px 24px', borderRadius: '10px', fontSize: '14px',
-    border: 'none', minWidth: '200px', textAlign: 'center',
+    background: `linear-gradient(155deg, ${mixHex(INK, '#ffffff', 0.16)}, ${INK} 70%)`,
+    color: '#f6efdf',
+    fontFamily: "'Bebas Neue', Impact, 'Arial Narrow', sans-serif",
+    fontWeight: 400,
+    fontSize: '24px',
+    letterSpacing: '0.05em',
+    lineHeight: 1.12,
+    padding: '16px 26px',
+    borderRadius: '20px',
+    border: 'none',
+    minWidth: '230px',
+    maxWidth: '320px',
+    textAlign: 'center',
+    boxShadow: '0 0 0 4px rgba(177,134,58,0.26), 0 0 0 14px rgba(177,134,58,0.07), 0 20px 44px rgba(20,32,54,0.28)',
   },
   category: {
-    background: '#fff', border: '2px solid #334155', fontWeight: 600,
-    padding: '10px 18px', borderRadius: '8px', fontSize: '13px',
-    minWidth: '140px', textAlign: 'center',
+    color: '#ffffff',
+    fontWeight: 700,
+    fontSize: '14px',
+    lineHeight: 1.25,
+    padding: '13px 20px',
+    borderRadius: '14px',
+    border: 'none',
+    minWidth: '156px',
+    maxWidth: '215px',
+    textAlign: 'center',
   },
-  fundamento: {
-    background: '#fef3c7', border: '1px solid #f59e0b',
-    padding: '8px 14px', borderRadius: '6px', fontSize: '12px',
-    maxWidth: '200px',
-  },
-  detail: {
-    background: '#f0f9ff', border: '1px solid #93c5fd',
-    padding: '8px 14px', borderRadius: '6px', fontSize: '12px',
-    maxWidth: '200px',
-  },
-  ai_generated: {
-    background: '#ede9fe', border: '1px solid #8b5cf6',
-    padding: '8px 14px', borderRadius: '6px', fontSize: '12px',
-    maxWidth: '220px',
+  sub: {
+    background: '#ffffff',
+    fontWeight: 500,
+    fontSize: '12.5px',
+    lineHeight: 1.35,
+    padding: '11px 15px 11px 27px',
+    borderRadius: '11px',
+    border: '1px solid',
+    maxWidth: '215px',
+    textAlign: 'left',
   },
 };
 
-const CATEGORY_ORDER = ['materia', 'partes', 'pretension', 'antecedentes', 'fundamentos', 'fallo', 'votos'];
+function buildNodeStyle(rawNode) {
+  const t = rawNode.type || 'detail';
+  const color = nodeColor(rawNode);
+
+  if (t === 'central') {
+    return { ...NODE_STYLES.central, '--dot': GOLD };
+  }
+  if (t === 'category') {
+    const isGold = color === GOLD;
+    return {
+      ...NODE_STYLES.category,
+      background: `linear-gradient(180deg, ${mixHex(color, '#ffffff', 0.1)}, ${color})`,
+      color: isGold ? INK : '#ffffff',
+      boxShadow: isGold
+        ? `0 12px 26px ${color}33, 0 0 0 3px rgba(177,134,58,0.33), 0 0 0 9px rgba(177,134,58,0.08)`
+        : `0 10px 24px ${color}40`,
+      '--dot': color,
+    };
+  }
+  return {
+    ...NODE_STYLES.sub,
+    borderColor: mixHex(color, CANVAS_BG, 0.55),
+    color: mixHex(color, INK, 0.3),
+    boxShadow: `0 6px 16px ${color}1f`,
+    '--dot': color,
+  };
+}
 
 function layoutTree(rawNodes, rawEdges) {
   const childrenMap = {};
@@ -137,26 +218,50 @@ function transformNodes(rawNodes, rawEdges) {
     layoutTree(prepared, rawEdges);
   }
 
-  return prepared.map((n) => ({
-    id: String(n.id),
-    type: 'default',
-    position: n.position,
-    data: {
-      label: n.label || n.data?.label || `Nodo ${n.id}`,
-      metadata: n.metadata || n.data?.metadata || null,
-      nodeType: n.type || 'detail',
-    },
-    style: NODE_STYLES[n.type] || NODE_STYLES.detail,
-  }));
+  return prepared.map((n) => {
+    const nodeType = n.type || 'detail';
+    const isSub = nodeType !== 'central' && nodeType !== 'category';
+    return {
+      id: String(n.id),
+      type: 'default',
+      position: n.position,
+      sourcePosition: Position.Right,
+      targetPosition: Position.Left,
+      className: isSub ? 'jmSub' : undefined,
+      data: {
+        label: n.label || n.data?.label || `Nodo ${n.id}`,
+        metadata: n.metadata || n.data?.metadata || null,
+        nodeType,
+      },
+      style: buildNodeStyle({ ...n, type: nodeType }),
+    };
+  });
 }
 
-function transformEdges(rawEdges) {
+function edgeStyle(targetRawNode) {
+  const color = targetRawNode ? nodeColor(targetRawNode) : NEUTRAL;
+  const isCategory = targetRawNode?.type === 'category';
+  return {
+    stroke: mixHex(color, CANVAS_BG, 0.2),
+    strokeWidth: isCategory ? 2.2 : 1.7,
+  };
+}
+
+function transformEdges(rawEdges, rawNodes = []) {
+  const byId = {};
+  rawNodes.forEach((n) => { byId[String(n.id)] = n; });
   return rawEdges.map((e, i) => ({
     id: e.id || `e-${i}`,
     source: String(e.source),
     target: String(e.target),
+    style: edgeStyle(byId[String(e.target)]),
   }));
 }
+
+const defaultEdgeOptions = {
+  type: 'bezier',
+  style: { stroke: mixHex(NEUTRAL, CANVAS_BG, 0.35), strokeWidth: 1.7 },
+};
 
 function MindMapInner() {
   const { id } = useParams();
@@ -187,7 +292,7 @@ function MindMapInner() {
         const rawEdges = data.mind_map_data.edges || [];
         rawDataRef.current = { rawNodes, rawEdges };
         setNodes(transformNodes(rawNodes, rawEdges));
-        setEdges(transformEdges(rawEdges));
+        setEdges(transformEdges(rawEdges, rawNodes));
       }
     }).catch(() => {
       // HU-24: si falla la carga del análisis, informar en vez de dejar la pantalla vacía.
@@ -262,8 +367,10 @@ function MindMapInner() {
         ...n,
         hidden: hidden.has(n.id),
         style: {
-          ...(NODE_STYLES[n.data?.nodeType] || NODE_STYLES.detail),
-          ...(next.has(n.id) ? { outline: '2px dashed #64748b', outlineOffset: '2px' } : {}),
+          // se conserva el estilo del nodo (color de rama) y solo se marca el colapso
+          ...n.style,
+          outline: next.has(n.id) ? `2px dashed ${GOLD}` : 'none',
+          outlineOffset: '3px',
         },
       })));
       setEdges((eds) => eds.map((e) => ({ ...e, hidden: hidden.has(e.source) || hidden.has(e.target) })));
@@ -303,16 +410,20 @@ function MindMapInner() {
         const pos = parent
           ? { x: parent.position.x + 300, y: parent.position.y + 60 }
           : { x: 0, y: 0 };
+        const rawNew = { ...data.node, type: data.node.type || 'ai_generated' };
         const rfNode = {
           id: String(data.node.id),
           type: 'default',
           position: pos,
+          sourcePosition: Position.Right,
+          targetPosition: Position.Left,
+          className: 'jmSub',
           data: {
             label: data.node.label,
             metadata: data.node.metadata || null,
-            nodeType: data.node.type || 'ai_generated',
+            nodeType: rawNew.type,
           },
-          style: NODE_STYLES[data.node.type] || NODE_STYLES.ai_generated,
+          style: buildNodeStyle(rawNew),
         };
         setNodes((nds) => [...nds, rfNode]);
         if (data.edge) {
@@ -320,6 +431,7 @@ function MindMapInner() {
             id: `e-ai-${data.node.id}`,
             source: String(data.edge.source),
             target: String(data.edge.target),
+            style: edgeStyle(rawNew),
           }]);
         }
       }
@@ -344,7 +456,7 @@ function MindMapInner() {
     const el = document.querySelector('.react-flow__viewport');
     if (!el) return null;
     const render = toPng(el, {
-      backgroundColor: '#e8e3de',
+      backgroundColor: CANVAS_BG,
       width: IMAGE_WIDTH,
       height: IMAGE_HEIGHT,
       pixelRatio: 1,
@@ -513,144 +625,169 @@ function MindMapInner() {
       const rawEdges = data.edges || [];
       rawDataRef.current = { rawNodes, rawEdges };
       setNodes(transformNodes(rawNodes, rawEdges));
-      setEdges(transformEdges(rawEdges));
+      setEdges(transformEdges(rawEdges, rawNodes));
     } catch { setActionError('No se pudo regenerar el mapa mental.'); }
     setRegenerating(false);
   };
 
   const minimapColor = (node) => {
     const t = node.data?.nodeType;
-    if (t === 'central') return '#1e293b';
-    if (t === 'category') return '#334155';
-    if (t === 'fundamento') return '#f59e0b';
-    return '#93c5fd';
+    if (t === 'central') return INK;
+    if (t === 'category') return categoryColor(node.id);
+    return SUB_COLORS[t] || SUB_COLORS.detail;
   };
 
   // HU-24: pantalla de error si el análisis no se pudo cargar.
   if (loadError) {
     return (
-      <div className={styles.page} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center',
-        justifyContent: 'center', gap: 14, padding: 24, textAlign: 'center' }}>
-        <h2 style={{ fontSize: 18, fontWeight: 700, color: '#1a1a1a', margin: 0 }}>No se pudo cargar el análisis</h2>
-        <p style={{ fontSize: 14, color: '#555', maxWidth: 380, margin: 0 }}>{loadError}</p>
-        <button onClick={() => navigate('/history')}
-          style={{ padding: '10px 18px', borderRadius: 8, border: 'none', background: '#1a1a1a',
-            color: '#f5f0eb', cursor: 'pointer', fontSize: 14 }}>
-          Volver al historial
-        </button>
+      <div className={styles.page}>
+        <AppHeader />
+        <div className={styles.loadErrorScreen}>
+          <h2 className={styles.loadErrorTitle}>No se pudo cargar el análisis</h2>
+          <p className={styles.loadErrorText}>{loadError}</p>
+          <button className={styles.regenerateBtn} onClick={() => navigate('/history')}>
+            Volver al historial
+          </button>
+        </div>
       </div>
     );
   }
 
   return (
     <div className={styles.page}>
-      <header className={styles.toolbar}>
-        <button className={styles.backBtn} onClick={() => navigate('/history')}>
-          <ArrowLeft size={14} /> Volver
-        </button>
-        <span className={styles.title}>
-          {analysis?.title || 'Análisis'}
-        </span>
-        <div className={styles.toolbarActions}>
-          <button className={styles.toolBtn} onClick={handleReorganize}><Pencil size={14} /> Reorganizar</button>
-          <button className={styles.toolBtn} onClick={handleExportImage} disabled={exporting}>
-            <Image size={14} /> Imagen
-          </button>
-          <button className={styles.toolBtn} onClick={handleExportPDF} disabled={exporting}>
-            <Download size={14} /> Exportar PDF
-          </button>
-        </div>
-      </header>
+      <AppHeader />
 
       {actionError && (
-        <div style={{ background: '#fef2f2', color: '#b91c1c', padding: '8px 16px', fontSize: 13, display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #fecaca' }}>
+        <div className={styles.errorBar}>
           <span>{actionError}</span>
-          <button onClick={() => setActionError('')} style={{ background: 'none', border: 'none', color: '#b91c1c', cursor: 'pointer', fontWeight: 600 }}>✕</button>
+          <button className={styles.errorBarClose} onClick={() => setActionError('')}>✕</button>
         </div>
       )}
 
-      <div className={styles.workspace}>
-        <div className={styles.canvas}>
-          {analysis && nodes.length === 0 && !regenerating && (
-            <div className={styles.emptyMap}>
-              <p>El mapa mental no tiene nodos. Esto puede ocurrir si los datos se corrompieron.</p>
-              <button className={styles.regenerateBtn} onClick={handleRegenerate}>
-                <RefreshCw size={16} /> Regenerar mapa mental
-              </button>
-            </div>
-          )}
-          {regenerating && (
-            <div className={styles.emptyMap}>
-              <RefreshCw size={24} className={styles.spinning} />
-              <p>Regenerando mapa mental... Esto puede tardar unos minutos.</p>
-            </div>
-          )}
-          <ReactFlow
-            nodes={nodes}
-            edges={edges}
-            onNodesChange={handleNodesChange}
-            onEdgesChange={onEdgesChange}
-            onNodeClick={onNodeClick}
-            onNodeDoubleClick={(_, node) => toggleCollapse(node.id)}
-            onNodeContextMenu={onNodeContextMenu}
-            onPaneClick={onPaneClick}
-            defaultEdgeOptions={defaultEdgeOptions}
-            fitView
-            minZoom={0.1}
-            maxZoom={2.5}
-          >
-            <Background color="#ddd" gap={20} />
-            <Controls showInteractive={false} />
-            <MiniMap nodeColor={minimapColor} maskColor="rgba(245,240,235,0.8)" />
-          </ReactFlow>
+      <div className={styles.canvas}>
+        {analysis && nodes.length === 0 && !regenerating && (
+          <div className={styles.emptyMap}>
+            <p>El mapa mental no tiene nodos. Esto puede ocurrir si los datos se corrompieron.</p>
+            <button className={styles.regenerateBtn} onClick={handleRegenerate}>
+              <RefreshCw size={16} /> Regenerar mapa mental
+            </button>
+          </div>
+        )}
+        {regenerating && (
+          <div className={styles.emptyMap}>
+            <RefreshCw size={24} className={styles.spinning} />
+            <p>Regenerando mapa mental... Esto puede tardar unos minutos.</p>
+          </div>
+        )}
 
-          {contextMenu && (
-            <NodeContextMenu
-              x={contextMenu.x}
-              y={contextMenu.y}
-              node={contextMenu.node}
-              isCollapsed={collapsed.has(contextMenu.node.id)}
-              onRename={handleRename}
-              onDelete={(nodeId) => { setConfirmDeleteNode({ id: nodeId, label: contextMenu.node.data?.label || '' }); setContextMenu(null); }}
-              onToggleCollapse={toggleCollapse}
-              onViewExplanation={() => { setSelectedNode(contextMenu.node); setContextMenu(null); }}
-              onClose={() => setContextMenu(null)}
-            />
-          )}
+        <ReactFlow
+          nodes={nodes}
+          edges={edges}
+          onNodesChange={handleNodesChange}
+          onEdgesChange={onEdgesChange}
+          onNodeClick={onNodeClick}
+          onNodeDoubleClick={(_, node) => toggleCollapse(node.id)}
+          onNodeContextMenu={onNodeContextMenu}
+          onPaneClick={onPaneClick}
+          defaultEdgeOptions={defaultEdgeOptions}
+          fitView
+          fitViewOptions={{ padding: { top: '92px', right: '350px', bottom: '92px', left: '56px' } }}
+          minZoom={0.1}
+          maxZoom={2.5}
+        >
+          <Background color="#c3cbdb" gap={26} size={1.6} />
+          <Controls showInteractive={false} position="bottom-right" />
+          <MiniMap
+            nodeColor={minimapColor}
+            nodeStrokeWidth={0}
+            maskColor="rgba(236,240,246,0.7)"
+            position="bottom-left"
+            style={{ width: 168, height: 112 }}
+          />
+        </ReactFlow>
+
+        <div className={styles.floatLeft}>
+          <button className={styles.backBtn} onClick={() => navigate('/history')}>
+            <ArrowLeft size={15} /> Volver
+          </button>
+          <span className={styles.sep} />
+          <span className={styles.title}>{analysis?.title || 'Análisis'}</span>
+        </div>
+
+        <div className={styles.floatRight}>
+          <button className={styles.toolBtn} onClick={handleReorganize}>
+            <LayoutGrid size={15} /> Reorganizar
+          </button>
+          <button className={styles.toolBtn} onClick={handleExportImage} disabled={exporting}>
+            <Image size={15} /> Imagen
+          </button>
+          <button className={`${styles.toolBtn} ${styles.toolBtnPrimary}`} onClick={handleExportPDF} disabled={exporting}>
+            <Download size={15} /> Exportar PDF
+          </button>
         </div>
 
         <aside className={styles.sidebar}>
           <div className={styles.sideSection}>
-            <h3 className={styles.sideLabel}>Generar nodo con IA</h3>
+            <span className={styles.sideHead}><Sparkles size={16} /> Añadir nodo</span>
+            <span className={styles.sideLabel}>Prompt</span>
             <textarea className={styles.promptInput} rows={3} value={prompt}
               onChange={(e) => { setPrompt(e.target.value); if (promptError) setPromptError(''); }}
               placeholder="Ej.: Agrega un nodo sobre el voto singular del magistrado..." />
-            {promptError && <div style={{ color: '#dc2626', fontSize: 12, marginTop: 4 }}>{promptError}</div>}
+            {promptError && <div className={styles.fieldError}>{promptError}</div>}
             <button className={styles.generateBtn} onClick={handleGenerateNode} disabled={generating}>
-              <Sparkles size={14} /> {generating ? 'Generando...' : '+ Generar nodo'}
+              <Plus size={16} /> {generating ? 'Generando...' : 'Generar nodo'}
             </button>
           </div>
 
+          <div className={styles.divider} />
+
           <div className={styles.sideSection}>
-            <h3 className={styles.sideLabel}>Documentos analizados</h3>
+            <span className={styles.sideLabel}>Documentos analizados</span>
             {analysis?.documents?.map((doc) => (
               <div key={doc.id} className={styles.docItem}>
-                <FileText size={14} />
+                <FileText size={15} />
                 <span>{doc.original_filename}</span>
               </div>
             ))}
           </div>
 
+          <div className={styles.divider} />
+
           <div className={styles.sideSection}>
-            <h3 className={styles.sideLabel}>Leyenda</h3>
+            <span className={styles.sideLabel}>Leyenda</span>
             <div className={styles.legend}>
-              <span><span className={styles.legendDot} style={{ background: '#1e293b' }} /> Sentencia</span>
-              <span><span className={styles.legendDot} style={{ background: '#fff', border: '2px solid #334155' }} /> Categoría</span>
-              <span><span className={styles.legendDot} style={{ background: '#fef3c7', border: '1px solid #f59e0b' }} /> Fundamento</span>
-              <span><span className={styles.legendDot} style={{ background: '#f0f9ff', border: '1px solid #93c5fd' }} /> Detalle</span>
+              <span>
+                <span className={styles.legendDot} style={{ background: INK, borderColor: INK }} /> Sentencia
+              </span>
+              <span>
+                <span className={styles.legendDot} style={{ background: CATEGORY_COLORS.partes, borderColor: CATEGORY_COLORS.partes }} /> Categoría
+              </span>
+              <span>
+                <span className={styles.legendDot} style={{ background: '#fff', borderColor: SUB_COLORS.fundamento }} /> Fundamento
+              </span>
+              <span>
+                <span className={styles.legendDot} style={{ background: '#fff', borderColor: SUB_COLORS.detail }} /> Detalle
+              </span>
+              <span>
+                <span className={styles.legendDot} style={{ background: '#fff', borderColor: SUB_COLORS.ai_generated }} /> Nodo con IA
+              </span>
             </div>
           </div>
         </aside>
+
+        {contextMenu && (
+          <NodeContextMenu
+            x={contextMenu.x}
+            y={contextMenu.y}
+            node={contextMenu.node}
+            isCollapsed={collapsed.has(contextMenu.node.id)}
+            onRename={handleRename}
+            onDelete={(nodeId) => { setConfirmDeleteNode({ id: nodeId, label: contextMenu.node.data?.label || '' }); setContextMenu(null); }}
+            onToggleCollapse={toggleCollapse}
+            onViewExplanation={() => { setSelectedNode(contextMenu.node); setContextMenu(null); }}
+            onClose={() => setContextMenu(null)}
+          />
+        )}
       </div>
 
       {selectedNode && (
@@ -665,25 +802,16 @@ function MindMapInner() {
 
       {/* HU-19: confirmación previa antes de eliminar un nodo */}
       {confirmDeleteNode && (
-        <div onClick={() => setConfirmDeleteNode(null)}
-          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex',
-            alignItems: 'center', justifyContent: 'center', zIndex: 10000 }}>
-          <div onClick={(e) => e.stopPropagation()}
-            style={{ background: '#fff', borderRadius: 12, padding: '22px 24px', width: 'min(92vw, 380px)',
-              boxShadow: '0 10px 40px rgba(0,0,0,0.2)' }}>
-            <h3 style={{ margin: '0 0 8px', fontSize: 16, color: '#1a1a1a' }}>¿Eliminar nodo?</h3>
-            <p style={{ margin: '0 0 18px', fontSize: 14, color: '#555' }}>
+        <div className={styles.overlay} onClick={() => setConfirmDeleteNode(null)}>
+          <div className={styles.confirmCard} onClick={(e) => e.stopPropagation()}>
+            <h3 className={styles.confirmTitle}>¿Eliminar nodo?</h3>
+            <p className={styles.confirmText}>
               Se eliminará «{confirmDeleteNode.label || 'este nodo'}» y sus subnodos. Esta acción no se puede deshacer.
             </p>
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
-              <button onClick={() => setConfirmDeleteNode(null)}
-                style={{ padding: '8px 14px', borderRadius: 8, border: '1px solid #e5e0da', background: '#fff',
-                  cursor: 'pointer', fontSize: 14 }}>
-                Cancelar
-              </button>
-              <button onClick={() => { handleDeleteNode(confirmDeleteNode.id); setConfirmDeleteNode(null); }}
-                style={{ padding: '8px 14px', borderRadius: 8, border: 'none', background: '#dc2626', color: '#fff',
-                  cursor: 'pointer', fontSize: 14 }}>
+            <div className={styles.confirmBtns}>
+              <button className={styles.btnGhost} onClick={() => setConfirmDeleteNode(null)}>Cancelar</button>
+              <button className={styles.btnDanger}
+                onClick={() => { handleDeleteNode(confirmDeleteNode.id); setConfirmDeleteNode(null); }}>
                 Eliminar
               </button>
             </div>

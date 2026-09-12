@@ -277,7 +277,6 @@ function MindMapInner() {
   const [exporting, setExporting] = useState(false);
   const [regenerating, setRegenerating] = useState(false);
   const saveTimer = useRef(null);
-  const rawDataRef = useRef(null);
   const [collapsed, setCollapsed] = useState(() => new Set());
   const [actionError, setActionError] = useState('');
   const [confirmDeleteNode, setConfirmDeleteNode] = useState(null);
@@ -290,7 +289,6 @@ function MindMapInner() {
       if (data.mind_map_data) {
         const rawNodes = data.mind_map_data.nodes || [];
         const rawEdges = data.mind_map_data.edges || [];
-        rawDataRef.current = { rawNodes, rawEdges };
         setNodes(transformNodes(rawNodes, rawEdges));
         setEdges(transformEdges(rawEdges, rawNodes));
       }
@@ -386,10 +384,21 @@ function MindMapInner() {
   };
 
   const handleDeleteNode = async (nodeId) => {
-    await mindmapApi.deleteNode(id, { node_id: nodeId });
-    setNodes((nds) => nds.filter((n) => n.id !== nodeId));
-    setEdges((eds) => eds.filter((e) => e.source !== nodeId && e.target !== nodeId));
     setContextMenu(null);
+    try {
+      await mindmapApi.deleteNode(id, { node_id: nodeId });
+    } catch {
+      setActionError('No se pudo eliminar el nodo. Inténtalo de nuevo.');
+      return;
+    }
+    // HU-19: el backend elimina el nodo Y todo su subárbol, así que la pantalla debe hacer lo mismo.
+    // Si solo se quitara el nodo, sus hijos quedarían huérfanos en el lienzo y el siguiente guardado
+    // automático los volvería a escribir en la base de datos.
+    const removed = new Set([nodeId, ...getDescendants(nodeId, edges)]);
+    setNodes((nds) => nds.filter((n) => !removed.has(n.id)));
+    setEdges((eds) => eds.filter((e) => !removed.has(e.source) && !removed.has(e.target)));
+    setCollapsed((prev) => new Set([...prev].filter((cid) => !removed.has(cid))));
+    setSelectedNode((sel) => (sel && removed.has(sel.id) ? null : sel));
   };
 
   const handleGenerateNode = async () => {
@@ -441,11 +450,25 @@ function MindMapInner() {
   };
 
   const handleReorganize = () => {
-    if (!rawDataRef.current) return;
-    const { rawNodes, rawEdges } = rawDataRef.current;
-    const fresh = rawNodes.map((n) => ({ ...n, position: { x: 0, y: 0 } }));
-    layoutTree(fresh, rawEdges);
-    setNodes(transformNodes(fresh, rawEdges));
+    // Reorganiza el mapa ACTUAL (con nodos renombrados, generados o eliminados), no los datos
+    // originales de la carga: con esos, un nodo eliminado (HU-19) reaparecía al reorganizar.
+    const current = getNodes();
+    if (current.length === 0) return;
+    const raw = current.map((n) => ({
+      id: n.id,
+      type: n.data?.nodeType || 'detail',
+      label: n.data?.label || '',
+      metadata: n.data?.metadata || null,
+      position: { x: 0, y: 0 },
+    }));
+    const rawEdges = edges.map((e) => ({ source: e.source, target: e.target }));
+    layoutTree(raw, rawEdges);
+    const hiddenIds = new Set(current.filter((n) => n.hidden).map((n) => n.id));
+    setNodes(transformNodes(raw, rawEdges).map((n) => ({
+      ...n,
+      hidden: hiddenIds.has(n.id),
+      style: { ...n.style, outline: collapsed.has(n.id) ? `2px dashed ${GOLD}` : 'none', outlineOffset: '3px' },
+    })));
   };
 
   const getCanvasImage = async () => {
@@ -623,7 +646,6 @@ function MindMapInner() {
       const { data } = await mindmapApi.regenerate(id);
       const rawNodes = data.nodes || [];
       const rawEdges = data.edges || [];
-      rawDataRef.current = { rawNodes, rawEdges };
       setNodes(transformNodes(rawNodes, rawEdges));
       setEdges(transformEdges(rawEdges, rawNodes));
     } catch { setActionError('No se pudo regenerar el mapa mental.'); }

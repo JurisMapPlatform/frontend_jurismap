@@ -1,93 +1,97 @@
 .page {
   display: flex;
   justify-content: center;
-  padding-top: 60px;
+  padding-top: 40px;
 }
 
 .card {
   background: var(--bg-card);
-  border-radius: var(--radius-lg);
-  padding: 48px;
-  max-width: 580px;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 38px 40px;
+  max-width: 560px;
   width: 100%;
-  box-shadow: var(--shadow-md);
+  box-shadow: var(--shadow-lg);
   text-align: center;
 }
 
 .statusLabel {
-  font-size: 11px;
-  font-weight: 600;
+  font-size: 12px;
+  font-weight: 500;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
-  color: var(--processing);
+  letter-spacing: 0.06em;
+  color: var(--gold-deep);
   margin-bottom: 12px;
   display: block;
 }
 
 .title {
-  font-size: 22px;
-  font-weight: 700;
+  font-family: var(--font-display);
+  font-size: 32px;
+  font-weight: 400;
+  letter-spacing: 0.03em;
+  line-height: 1.05;
   margin-bottom: 8px;
 }
 
 .sub {
-  font-size: 13px;
+  font-size: 13.5px;
   color: var(--text-secondary);
   line-height: 1.6;
   margin-bottom: 28px;
 }
 
 .progressBar {
-  height: 4px;
-  background: var(--bg-primary);
-  border-radius: 2px;
-  margin-bottom: 32px;
+  height: 8px;
+  background: var(--border);
+  border-radius: 6px;
+  margin-bottom: 28px;
   overflow: hidden;
 }
 
 .progressFill {
   height: 100%;
-  background: var(--accent);
-  border-radius: 2px;
+  background: var(--gold);
+  border-radius: 6px;
   transition: width 0.5s ease;
 }
 
 .steps {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
   text-align: left;
-  margin-bottom: 32px;
+  margin-bottom: 28px;
 }
 
 .step {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 14px 16px;
+  gap: 14px;
+  padding: 12px 14px;
   border-radius: var(--radius-sm);
   font-size: 13px;
 }
 
 .stepActive {
-  background: var(--bg-primary);
+  background: var(--gold-soft);
 }
 
 .stepDone {
-  opacity: 0.7;
+  opacity: 0.75;
 }
 
 .stepNum {
-  width: 24px;
-  height: 24px;
+  width: 30px;
+  height: 30px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 11px;
-  font-weight: 600;
+  font-size: 13px;
+  font-weight: 500;
   border: 1px solid var(--border);
-  color: var(--text-muted);
+  color: var(--text-secondary);
   flex-shrink: 0;
 }
 
@@ -98,14 +102,20 @@
 }
 
 .stepActive .stepNum {
-  background: var(--processing);
+  background: var(--gold);
   color: #fff;
-  border-color: var(--processing);
+  border-color: var(--gold);
+}
+
+.step strong {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-primary);
 }
 
 .stepStatus {
-  font-size: 11px;
-  color: var(--text-muted);
+  font-size: 12.5px;
+  color: var(--text-secondary);
   display: block;
   margin-top: 1px;
 }
@@ -122,12 +132,14 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 10px 20px;
-  border: 1px solid var(--error);
-  border-radius: var(--radius-md);
+  height: 42px;
+  padding: 0 20px;
+  border: 1px solid #cfaab1;
+  border-radius: var(--radius-sm);
   color: var(--error);
-  font-size: 13px;
+  font-size: 13.5px;
   font-weight: 500;
+  background: transparent;
 }
 
 .cancelBtn:hover {
@@ -135,12 +147,17 @@
 }
 
 .retryBtn {
-  padding: 12px 28px;
+  height: 44px;
+  padding: 0 26px;
   background: var(--accent);
-  color: #fff;
-  border-radius: var(--radius-md);
+  color: var(--on-accent);
+  border-radius: var(--radius-sm);
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 500;
+}
+
+.retryBtn:hover {
+  background: var(--accent-hover);
 }
 
 @media (max-width: 640px) {

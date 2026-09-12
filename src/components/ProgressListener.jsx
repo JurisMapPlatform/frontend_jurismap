@@ -61,30 +61,30 @@ export default function ProgressListener() {
   return (
     <div style={{
       position: 'fixed', right: 20, bottom: 20, zIndex: 9999, maxWidth: 340,
-      background: '#fff', border: '1px solid #e5e0da', borderRadius: 12,
-      boxShadow: '0 8px 30px rgba(0,0,0,0.15)', padding: '14px 16px',
+      background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 14,
+      boxShadow: '0 14px 36px rgba(27, 44, 74, 0.16)', padding: '14px 16px',
       display: 'flex', gap: 12, alignItems: 'flex-start',
     }}>
-      <span style={{ marginTop: 2, color: ok ? '#16a34a' : '#dc2626', flexShrink: 0 }}>
+      <span style={{ marginTop: 2, color: ok ? 'var(--success)' : 'var(--error)', flexShrink: 0 }}>
         {ok ? <Check size={18} /> : <AlertTriangle size={18} />}
       </span>
       <div style={{ flex: 1 }}>
-        <strong style={{ display: 'block', fontSize: 14, color: '#1a1a1a' }}>
+        <strong style={{ display: 'block', fontSize: 14, color: 'var(--text-primary)' }}>
           {ok ? 'Mapa mental listo' : 'El análisis falló'}
         </strong>
-        <p style={{ margin: '2px 0 8px', fontSize: 13, color: '#555' }}>
+        <p style={{ margin: '2px 0 8px', fontSize: 13, color: 'var(--text-secondary)' }}>
           {ok ? 'Tu análisis terminó de procesarse.' : 'Ocurrió un error durante el procesamiento.'}
         </p>
         <button onClick={go} style={{
-          display: 'inline-flex', alignItems: 'center', gap: 4, background: '#1a1a1a',
-          color: '#f5f0eb', border: 'none', borderRadius: 6, padding: '6px 10px',
-          fontSize: 13, cursor: 'pointer',
+          display: 'inline-flex', alignItems: 'center', gap: 4, background: 'var(--accent)',
+          color: 'var(--on-accent)', border: 'none', borderRadius: 8, padding: '7px 12px',
+          fontSize: 13, fontWeight: 500, cursor: 'pointer',
         }}>
           {ok ? 'Ver mapa' : 'Ver historial'} <ArrowRight size={13} />
         </button>
       </div>
       <button onClick={clearToast} title="Cerrar" style={{
-        background: 'none', border: 'none', cursor: 'pointer', color: '#999', flexShrink: 0,
+        background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', flexShrink: 0,
       }}>
         <X size={16} />
       </button>

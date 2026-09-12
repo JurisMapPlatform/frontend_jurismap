@@ -20,19 +20,24 @@
 }
 
 .listTitle {
-  font-size: 18px;
-  font-weight: 700;
+  font-family: var(--font-display);
+  font-size: 30px;
+  font-weight: 400;
+  letter-spacing: 0.03em;
+  line-height: 1;
+  color: var(--text-primary);
 }
 
 .newBtn {
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 8px 14px;
+  height: 34px;
+  padding: 0 13px;
   background: var(--accent);
-  color: #fff;
-  font-size: 12px;
-  font-weight: 600;
+  color: var(--on-accent);
+  font-size: 13px;
+  font-weight: 500;
   border-radius: var(--radius-sm);
 }
 
@@ -40,17 +45,18 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 10px 14px;
+  padding: 11px 15px;
   border: 1px solid var(--border);
-  border-radius: var(--radius-md);
+  border-radius: 11px;
   background: var(--bg-card);
-  margin-bottom: 10px;
+  margin-bottom: 12px;
 }
 
 .searchInput {
   flex: 1;
   border: none;
-  font-size: 13px;
+  font-size: 13.5px;
+  color: var(--text-primary);
   background: transparent;
 }
 
@@ -69,9 +75,9 @@
 }
 
 .count {
-  font-size: 11px;
-  color: var(--text-muted);
-  margin-bottom: 12px;
+  font-size: 12.5px;
+  color: var(--text-secondary);
+  margin-bottom: 14px;
 }
 
 .items {
@@ -79,32 +85,34 @@
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 9px;
 }
 
 .item {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 14px;
-  border-radius: var(--radius-sm);
+  gap: 14px;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
   cursor: pointer;
-  transition: background 0.15s;
+  transition: border-color 0.15s, box-shadow 0.15s;
   background: var(--bg-card);
 }
 
 .item:hover {
-  background: var(--bg-primary);
+  border-color: #c9d1e0;
+  box-shadow: var(--shadow-md);
 }
 
 .itemSelected {
-  background: var(--bg-primary);
-  outline: 1px solid var(--border);
+  border-color: #ddc79f;
+  box-shadow: 0 0 0 2px rgba(177, 134, 58, 0.13);
 }
 
 .itemDot {
-  width: 8px;
-  height: 8px;
+  width: 9px;
+  height: 9px;
   border-radius: 50%;
   flex-shrink: 0;
 }
@@ -115,8 +123,8 @@
 }
 
 .itemTitle {
-  font-size: 13px;
-  font-weight: 500;
+  font-size: 14.5px;
+  font-weight: 700;
   display: block;
   white-space: nowrap;
   overflow: hidden;
@@ -127,16 +135,16 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-top: 4px;
-  font-size: 11px;
-  color: var(--text-muted);
+  margin-top: 5px;
+  font-size: 12px;
+  color: var(--text-secondary);
 }
 
 .badge {
-  padding: 1px 6px;
-  border-radius: 10px;
-  font-size: 10px;
-  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 500;
 }
 
 .itemActions {
@@ -145,26 +153,32 @@
 }
 
 .itemDate {
-  font-size: 10px;
-  color: var(--text-muted);
+  font-size: 12px;
+  color: var(--text-secondary);
   display: block;
-  margin-bottom: 4px;
+  margin-bottom: 8px;
 }
 
 .itemBtns {
   display: flex;
-  gap: 2px;
+  gap: 6px;
   justify-content: flex-end;
 }
 
 .iconBtn {
-  padding: 4px;
-  border-radius: 4px;
-  color: var(--text-muted);
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-card);
+  color: var(--text-secondary);
 }
 
 .iconBtn:hover {
-  background: var(--border);
+  background: var(--bg-primary);
   color: var(--text-primary);
 }
 
@@ -177,24 +191,26 @@
 
 .detail {
   background: var(--bg-card);
-  border-radius: var(--radius-md);
-  padding: 32px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 30px 32px;
   box-shadow: var(--shadow-sm);
   overflow-y: auto;
 }
 
 .detailTitle {
-  font-size: 18px;
+  font-size: 19px;
   font-weight: 700;
-  margin-bottom: 8px;
+  color: var(--text-primary);
+  margin-bottom: 10px;
 }
 
 .detailMeta {
-  font-size: 12px;
-  color: var(--text-muted);
+  font-size: 13px;
+  color: var(--text-secondary);
   display: flex;
   gap: 16px;
-  margin-bottom: 28px;
+  margin-bottom: 22px;
 }
 
 .previewBox {
@@ -202,18 +218,19 @@
 }
 
 .previewBox h3 {
-  font-size: 12px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  color: var(--text-muted);
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 400;
+  letter-spacing: 0.03em;
+  color: var(--text-primary);
   margin-bottom: 12px;
 }
 
 .previewPlaceholder {
-  height: 220px;
-  background: var(--bg-primary);
-  border-radius: var(--radius-md);
+  height: 200px;
+  background: var(--bg-subtle);
+  border: 1px solid var(--border);
+  border-radius: 14px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -222,12 +239,17 @@
 }
 
 .openMapBtn {
-  padding: 10px 20px;
+  height: 40px;
+  padding: 0 18px;
   background: var(--accent);
-  color: #fff;
-  border-radius: var(--radius-md);
-  font-size: 13px;
+  color: var(--on-accent);
+  border-radius: var(--radius-sm);
+  font-size: 14px;
   font-weight: 500;
+}
+
+.openMapBtn:hover {
+  background: var(--accent-hover);
 }
 
 .detailSection {
@@ -235,11 +257,11 @@
 }
 
 .detailSection h3 {
-  font-size: 12px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  color: var(--text-muted);
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 400;
+  letter-spacing: 0.03em;
+  color: var(--text-primary);
   margin-bottom: 12px;
 }
 
@@ -251,11 +273,13 @@
 .exportBtn {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 8px 16px;
+  gap: 7px;
+  height: 40px;
+  padding: 0 16px;
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
-  font-size: 12px;
+  background: var(--bg-card);
+  font-size: 13.5px;
   font-weight: 500;
   color: var(--text-primary);
 }
@@ -276,7 +300,7 @@
 .overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,0.4);
+  background: rgba(27, 44, 74, 0.42);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -286,14 +310,16 @@
 .modal {
   background: var(--bg-card);
   padding: 28px;
-  border-radius: var(--radius-lg);
+  border-radius: 18px;
   max-width: 360px;
   width: 100%;
   text-align: center;
+  box-shadow: var(--shadow-lg);
 }
 
 .modal h3 {
-  font-size: 16px;
+  font-size: 17px;
+  font-weight: 700;
   margin-bottom: 8px;
 }
 
@@ -310,19 +336,22 @@
 }
 
 .cancelModalBtn {
-  padding: 10px 20px;
+  height: 40px;
+  padding: 0 18px;
   border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  font-size: 13px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-card);
+  font-size: 13.5px;
 }
 
 .deleteModalBtn {
-  padding: 10px 20px;
+  height: 40px;
+  padding: 0 18px;
   background: var(--error);
   color: #fff;
-  border-radius: var(--radius-md);
-  font-size: 13px;
-  font-weight: 600;
+  border-radius: var(--radius-sm);
+  font-size: 13.5px;
+  font-weight: 500;
 }
 
 @media (max-width: 1024px) {

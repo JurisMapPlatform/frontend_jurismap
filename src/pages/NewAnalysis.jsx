@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Upload, X, FileText, Check, AlertTriangle } from 'lucide-react';
-import { documentApi, analysisApi } from '../services/api';
+import { documentApi, analysisApi, getErrorMessage } from '../services/api';
 import styles from './NewAnalysis.module.css';
 
 const MAX_FILES = 5;
@@ -82,7 +82,7 @@ export default function NewAnalysis() {
       });
       navigate(`/processing/${data.id}`);
     } catch (err) {
-      setError(err.response?.data?.detail || 'Error al crear el análisis');
+      setError(getErrorMessage(err, 'No se pudo crear el análisis. Inténtalo de nuevo.'));
       setLoading(false);
     }
   };

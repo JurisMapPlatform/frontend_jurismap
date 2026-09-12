@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { analysisApi } from '../services/api';
+import { analysisApi, getErrorMessage } from '../services/api';
 
 const useAnalysisStore = create((set, get) => ({
   analyses: [],
@@ -14,7 +14,7 @@ const useAnalysisStore = create((set, get) => ({
       const { data } = await analysisApi.list(params);
       set({ analyses: data.items || data, loading: false });
     } catch (err) {
-      set({ error: err.response?.data?.detail, loading: false });
+      set({ error: getErrorMessage(err, 'No se pudo cargar la información.'), loading: false });
     }
   },
 
@@ -24,7 +24,7 @@ const useAnalysisStore = create((set, get) => ({
       const { data } = await analysisApi.detail(id);
       set({ current: data, loading: false });
     } catch (err) {
-      set({ error: err.response?.data?.detail, loading: false });
+      set({ error: getErrorMessage(err, 'No se pudo cargar la información.'), loading: false });
     }
   },
 

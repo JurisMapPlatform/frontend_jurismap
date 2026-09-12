@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useSearchParams, Link, useNavigate } from 'react-router-dom';
-import { authApi } from '../services/api';
+import { authApi, getErrorMessage } from '../services/api';
 import s from '../components/FormCard.module.css';
 
 export default function ResetPassword() {
@@ -23,7 +23,7 @@ export default function ResetPassword() {
       await authApi.resetPassword({ token, new_password: password });
       setDone(true);
     } catch (err) {
-      setError(err.response?.data?.detail || 'Token inválido o expirado');
+      setError(getErrorMessage(err, 'El enlace no es válido o ya expiró. Solicita uno nuevo desde «¿Olvidaste tu contraseña?».'));
     } finally {
       setLoading(false);
     }

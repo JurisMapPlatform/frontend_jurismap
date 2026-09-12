@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { authApi } from '../services/api';
+import { authApi, getErrorMessage } from '../services/api';
 import s from '../components/FormCard.module.css';
 
 export default function ForgotPassword() {
@@ -17,7 +17,7 @@ export default function ForgotPassword() {
       await authApi.forgotPassword(email);
       setSent(true);
     } catch (err) {
-      setError(err.response?.data?.detail || 'Error al enviar el correo');
+      setError(getErrorMessage(err, 'No se pudo enviar el correo. Inténtalo de nuevo.'));
     } finally {
       setLoading(false);
     }

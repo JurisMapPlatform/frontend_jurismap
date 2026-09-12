@@ -209,13 +209,29 @@ function transformNodes(rawNodes, rawEdges) {
     (n) => n.position && typeof n.position.x === 'number' && (n.position.x !== 0 || n.position.y !== 0)
   );
 
+  const validPos = (p) => p && typeof p.x === 'number' && typeof p.y === 'number';
   const prepared = rawNodes.map((n) => ({
     ...n,
-    position: hasPositions && n.position ? n.position : { x: 0, y: 0 },
+    position: hasPositions && validPos(n.position) ? n.position : { x: 0, y: 0 },
   }));
 
   if (!hasPositions) {
     layoutTree(prepared, rawEdges);
+  } else {
+    // HU-17: un nodo guardado sin posición (p. ej. uno generado con IA) se ubica junto a su padre,
+    // en lugar de caer en el origen del lienzo, encima del nodo raíz.
+    const byId = {};
+    prepared.forEach((n) => { byId[n.id] = n; });
+    const parentOf = {};
+    rawEdges.forEach((e) => { parentOf[e.target] = e.source; });
+    const placed = {};
+    rawNodes.forEach((raw, i) => {
+      if (validPos(raw.position)) return;
+      const parent = byId[parentOf[raw.id]];
+      if (!parent) return;
+      placed[parent.id] = (placed[parent.id] || 0) + 1;
+      prepared[i].position = { x: parent.position.x + 300, y: parent.position.y + 60 * placed[parent.id] };
+    });
   }
 
   return prepared.map((n) => {
@@ -266,7 +282,7 @@ const defaultEdgeOptions = {
 function MindMapInner() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { getNodes } = useReactFlow();
+  const { getNodes, getEdges } = useReactFlow();
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [analysis, setAnalysis] = useState(null);
@@ -310,14 +326,16 @@ function MindMapInner() {
         position: { x: Math.round(n.position.x), y: Math.round(n.position.y) },
         metadata: n.data?.metadata || null,
       }));
-      const currentEdges = edges.map((e) => ({
+      // Se leen las conexiones al momento de guardar (no las de la última renderización): así no se
+      // pierde una conexión recién creada, como la de un nodo generado con IA (HU-17).
+      const currentEdges = getEdges().map((e) => ({
         id: e.id,
         source: e.source,
         target: e.target,
       }));
       mindmapApi.autoSave(id, { nodes: saveNodes, edges: currentEdges }).catch(() => {});
     }, 2000);
-  }, [id, edges, getNodes]);
+  }, [id, getNodes, getEdges]);
 
   const handleNodesChange = useCallback((changes) => {
     onNodesChange(changes);
@@ -443,6 +461,9 @@ function MindMapInner() {
             style: edgeStyle(rawNew),
           }]);
         }
+        // HU-17: guardar de inmediato la posición del nodo nuevo; el backend lo crea sin posición y,
+        // al volver a abrir el mapa, aparecería en el origen, encima del nodo raíz.
+        doSave();
       }
       setPrompt('');
     } catch { setActionError('No se pudo generar el nodo. Inténtalo de nuevo.'); }

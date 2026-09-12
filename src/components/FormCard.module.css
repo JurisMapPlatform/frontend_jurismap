@@ -1,15 +1,19 @@
 .card {
   background: var(--bg-card);
-  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  border-radius: 18px;
   padding: 40px;
   width: 100%;
   max-width: 440px;
-  box-shadow: var(--shadow-md);
+  box-shadow: var(--shadow-lg);
 }
 
 .title {
-  font-size: 22px;
-  font-weight: 700;
+  font-family: var(--font-display);
+  font-size: 32px;
+  font-weight: 400;
+  letter-spacing: 0.03em;
+  line-height: 1.05;
   margin-bottom: 4px;
 }
 
@@ -26,8 +30,8 @@
 .label {
   display: block;
   font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.5px;
+  font-weight: 500;
+  letter-spacing: 0.05em;
   text-transform: uppercase;
   color: var(--text-secondary);
   margin-bottom: 6px;
@@ -98,8 +102,8 @@
   width: 100%;
   padding: 14px;
   font-size: 14px;
-  font-weight: 600;
-  color: #fff;
+  font-weight: 500;
+  color: var(--on-accent);
   background: var(--accent);
   border-radius: var(--radius-md);
   transition: background 0.15s;
@@ -163,7 +167,8 @@
 }
 
 .footerLink {
-  font-weight: 600;
+  font-weight: 700;
+  color: var(--gold-deep);
   text-decoration: underline;
 }
 
@@ -218,8 +223,10 @@
 }
 
 .infoTitle {
-  font-size: 18px;
-  font-weight: 700;
+  font-family: var(--font-display);
+  font-size: 26px;
+  font-weight: 400;
+  letter-spacing: 0.03em;
   margin-bottom: 8px;
 }
 
@@ -283,7 +290,7 @@
 
 .stepActive {
   background: var(--accent);
-  color: #fff;
+  color: var(--on-accent);
 }
 
 .stepInactive {

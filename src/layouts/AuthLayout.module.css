@@ -9,35 +9,26 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 14px 40px;
-  border-bottom: 1px solid var(--border);
-  background: var(--bg-card);
+  height: 64px;
+  padding: 0 30px;
 }
 
 .logoLink {
   display: flex;
   align-items: center;
-  gap: 10px;
   text-decoration: none;
 }
 
-.logoIcon {
-  width: 28px;
-  height: 28px;
-}
-
-.logoText {
-  font-weight: 700;
-  font-size: 16px;
-  color: var(--text-primary);
-}
-
 .headerLink {
-  font-size: 14px;
+  font-size: 13px;
+  font-weight: 500;
   color: var(--text-secondary);
+  padding: 7px 14px;
+  border-radius: var(--radius-sm);
 }
 
 .headerLink:hover {
+  background: var(--bg-card);
   color: var(--text-primary);
 }
 
@@ -46,28 +37,32 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 60px 20px;
+  justify-content: center;
+  gap: 22px;
+  padding: 40px 20px 60px;
 }
 
 .logoCenter {
   display: flex;
+  flex-direction: column;
   align-items: center;
   gap: 10px;
-  font-size: 14px;
-  color: var(--text-muted);
-  padding: 8px 20px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  margin-bottom: 48px;
-  background: var(--bg-card);
-  font-weight: 600;
+}
+
+.logoWord {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: 34px;
+  letter-spacing: 0.05em;
+  line-height: 1;
+  color: var(--text-primary);
 }
 
 @media (max-width: 768px) {
   .header {
-    padding: 14px 16px;
+    padding: 0 16px;
   }
   .main {
-    padding: 32px 16px;
+    padding: 24px 16px 40px;
   }
 }

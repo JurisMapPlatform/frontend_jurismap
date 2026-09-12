@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams, useLocation, Link, useNavigate } from 'react-router-dom';
 import { Mail, CheckCircle, XCircle } from 'lucide-react';
-import { authApi } from '../services/api';
+import { authApi, getErrorMessage } from '../services/api';
 import s from '../components/FormCard.module.css';
 
 export default function VerifyEmail() {
@@ -14,6 +14,7 @@ export default function VerifyEmail() {
   const [status, setStatus] = useState(token ? 'verifying' : 'info');
   const [resending, setResending] = useState(false);
   const [resendMsg, setResendMsg] = useState('');
+  const [errorMsg, setErrorMsg] = useState('');
 
   const handleResend = async () => {
     if (!realEmail) return;
@@ -30,7 +31,13 @@ export default function VerifyEmail() {
 
   useEffect(() => {
     if (!token) return;
-    authApi.verifyEmail(token).then(() => setStatus('success')).catch(() => setStatus('error'));
+    authApi.verifyEmail(token)
+      .then(() => setStatus('success'))
+      .catch((err) => {
+        // HU-02: mostrar el motivo concreto (enlace vencido o inválido) que devuelve el backend.
+        setErrorMsg(getErrorMessage(err, 'No pudimos verificar tu cuenta. El enlace puede haber expirado o ya fue usado.'));
+        setStatus('error');
+      });
   }, [token]);
 
   if (status === 'verifying') {
@@ -66,7 +73,7 @@ export default function VerifyEmail() {
         <div className={s.infoBox}>
           <div className={s.infoIcon}><XCircle size={40} strokeWidth={1.5} /></div>
           <h2 className={s.infoTitle}>Enlace inválido o expirado</h2>
-          <p className={s.infoText}>No pudimos verificar tu cuenta. El enlace puede haber expirado o ya fue usado.</p>
+          <p className={s.infoText}>{errorMsg || 'No pudimos verificar tu cuenta. El enlace puede haber expirado o ya fue usado.'}</p>
           <Link to="/login" className={s.backLink}>← Volver al inicio de sesión</Link>
         </div>
       </div>

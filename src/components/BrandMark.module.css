@@ -1,0 +1,36 @@
+.wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.badge {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--accent);
+  color: var(--gold);
+  flex-shrink: 0;
+}
+
+.badgeLg {
+  width: 46px;
+  height: 46px;
+  border-radius: 13px;
+}
+
+.word {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: 23px;
+  letter-spacing: 0.05em;
+  line-height: 1;
+  color: var(--text-primary);
+}
+
+.wordLg {
+  font-size: 34px;
+}

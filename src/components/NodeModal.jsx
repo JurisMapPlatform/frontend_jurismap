@@ -1,18 +1,15 @@
 import { useState } from 'react';
 import { X } from 'lucide-react';
+import { findFinding } from '../utils/findings';
 import styles from './NodeModal.module.css';
 
 export default function NodeModal({ node, analysis, findings, onClose }) {
   const [tab, setTab] = useState('explanation');
   const metadata = node.data?.metadata || {};
-  // Con varias sentencias, un mismo número de fundamento puede repetirse: se prefiere el registro
-  // del documento indicado en el nodo y, si no, el fundamento que se seleccionó para el mapa.
-  const candidates = (findings || []).filter(
-    (f) => f.node_id === node.id || (metadata.fundamento_num && f.fundamento_num === metadata.fundamento_num)
-  );
-  const finding = candidates.find((f) => metadata.document_id && f.document_id === metadata.document_id)
-    || candidates.find((f) => f.is_selected)
-    || candidates[0];
+  // El nodo guarda el id exacto de su fundamento (finding_id). Para mapas anteriores se busca por
+  // número: como se repite (antecedentes, fallo, varias sentencias), se prefiere el seleccionado
+  // para el mapa y del documento indicado en el nodo.
+  const finding = findFinding(findings, node.id, metadata);
 
   const summary = metadata.summary || metadata.simplified || finding?.simplified_text || null;
   const original = metadata.original || finding?.texto || null;

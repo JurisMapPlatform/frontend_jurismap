@@ -12,6 +12,7 @@ import { ArrowLeft, LayoutGrid, Image, FileText, Sparkles, Plus, Download, Refre
 import { analysisApi, mindmapApi } from '../services/api';
 import AppHeader from '../components/AppHeader';
 import NodeModal from '../components/NodeModal';
+import { findFinding } from '../utils/findings';
 import NodeContextMenu from '../components/NodeContextMenu';
 import styles from './MindMap.module.css';
 
@@ -580,9 +581,7 @@ function MindMapInner() {
       const findings = analysis?.findings || [];
       const resolveContent = (nd) => {
         const md = nd.metadata || {};
-        const finding = findings.find(
-          (f) => f.node_id === nd.id || (md.fundamento_num && f.fundamento_num === md.fundamento_num)
-        );
+        const finding = findFinding(findings, nd.id, md);
         return {
           summary: md.summary || md.simplified || finding?.simplified_text || null,
           original: md.original || finding?.texto || null,

@@ -126,7 +126,9 @@ export const exportApi = {
 
 export function connectWebSocket(token, onMessage) {
   const wsBase = API_BASE.replace(/^http/, 'ws');
-  const ws = new WebSocket(`${wsBase}/ws?token=${token}`);
+  // El token viaja en el primer mensaje y no en la URL, para que no quede en los logs del servidor.
+  const ws = new WebSocket(`${wsBase}/ws`);
+  ws.onopen = () => ws.send(JSON.stringify({ type: 'auth', token }));
   ws.onmessage = (e) => onMessage(JSON.parse(e.data));
   ws.onerror = () => {};
   return ws;

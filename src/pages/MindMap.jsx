@@ -8,7 +8,7 @@ import {
 import '@xyflow/react/dist/style.css';
 import { toPng } from 'html-to-image';
 import { jsPDF } from 'jspdf';
-import { ArrowLeft, LayoutGrid, Image, FileText, Sparkles, Plus, Download, RefreshCw } from 'lucide-react';
+import { ArrowLeft, LayoutGrid, Image, FileText, Sparkles, Plus, Download, RefreshCw, Loader2 } from 'lucide-react';
 import { analysisApi, mindmapApi } from '../services/api';
 import AppHeader from '../components/AppHeader';
 import NodeModal from '../components/NodeModal';
@@ -396,9 +396,16 @@ function MindMapInner() {
   }, [edges, getDescendants, setNodes, setEdges]);
 
   const handleRename = async (nodeId, newLabel) => {
+    const previous = getNodes().find((n) => n.id === nodeId)?.data?.label;
     setNodes((nds) => nds.map((n) => n.id === nodeId ? { ...n, data: { ...n.data, label: newLabel } } : n));
-    await mindmapApi.renameNode(id, { node_id: nodeId, new_label: newLabel });
     setContextMenu(null);
+    try {
+      await mindmapApi.renameNode(id, { node_id: nodeId, new_label: newLabel });
+    } catch {
+      // HU-32: si no se guarda, se devuelve el nombre anterior y se orienta al estudiante.
+      setNodes((nds) => nds.map((n) => n.id === nodeId ? { ...n, data: { ...n.data, label: previous } } : n));
+      setActionError('No se pudo renombrar el nodo. Revisa tu conexión e inténtalo de nuevo.');
+    }
   };
 
   const handleDeleteNode = async (nodeId) => {
@@ -490,6 +497,8 @@ function MindMapInner() {
       hidden: hiddenIds.has(n.id),
       style: { ...n.style, outline: collapsed.has(n.id) ? `2px dashed ${GOLD}` : 'none', outlineOffset: '3px' },
     })));
+    // HU-20: la nueva disposición se guarda automáticamente, igual que al mover un nodo.
+    doSave();
   };
 
   const getCanvasImage = async () => {
@@ -520,7 +529,8 @@ function MindMapInner() {
   };
 
   const handleExportImage = async () => {
-    setExporting(true);
+    // HU-31: el botón indica que la imagen se está generando y vuelve a su estado al terminar.
+    setExporting('image');
     try {
       const dataUrl = await getCanvasImage();
       if (!dataUrl) return;
@@ -528,12 +538,15 @@ function MindMapInner() {
       link.download = `${analysis?.title || 'mapa-mental'}.png`;
       link.href = dataUrl;
       link.click();
-    } catch { setActionError('No se pudo exportar la imagen.'); }
-    setExporting(false);
+    } catch {
+      setActionError('No se pudo exportar la imagen. Inténtalo de nuevo o usa «Exportar PDF».');
+    } finally {
+      setExporting(false);
+    }
   };
 
   const handleExportPDF = async () => {
-    setExporting(true);
+    setExporting('pdf');
     try {
       let dataUrl = null;
       try { dataUrl = await getCanvasImage(); } catch { dataUrl = null; } // si la imagen falla, seguimos con el contenido
@@ -657,8 +670,11 @@ function MindMapInner() {
       }
 
       pdf.save(`${analysis?.title || 'mapa-mental'}.pdf`);
-    } catch { setActionError('No se pudo exportar el PDF.'); }
-    setExporting(false);
+    } catch {
+      setActionError('No se pudo exportar el PDF. Espera unos segundos e inténtalo de nuevo.');
+    } finally {
+      setExporting(false);
+    }
   };
 
   const handleRegenerate = async () => {
@@ -669,7 +685,7 @@ function MindMapInner() {
       const rawEdges = data.edges || [];
       setNodes(transformNodes(rawNodes, rawEdges));
       setEdges(transformEdges(rawEdges, rawNodes));
-    } catch { setActionError('No se pudo regenerar el mapa mental.'); }
+    } catch { setActionError('No se pudo regenerar el mapa mental. Inténtalo de nuevo en unos minutos.'); }
     setRegenerating(false);
   };
 
@@ -761,11 +777,15 @@ function MindMapInner() {
           <button className={styles.toolBtn} onClick={handleReorganize}>
             <LayoutGrid size={15} /> Reorganizar
           </button>
-          <button className={styles.toolBtn} onClick={handleExportImage} disabled={exporting}>
-            <Image size={15} /> Imagen
+          <button className={styles.toolBtn} onClick={handleExportImage} disabled={!!exporting}>
+            {exporting === 'image'
+              ? <><Loader2 size={15} className={styles.spinning} /> Generando imagen...</>
+              : <><Image size={15} /> Imagen</>}
           </button>
-          <button className={`${styles.toolBtn} ${styles.toolBtnPrimary}`} onClick={handleExportPDF} disabled={exporting}>
-            <Download size={15} /> Exportar PDF
+          <button className={`${styles.toolBtn} ${styles.toolBtnPrimary}`} onClick={handleExportPDF} disabled={!!exporting}>
+            {exporting === 'pdf'
+              ? <><Loader2 size={15} className={styles.spinning} /> Generando PDF...</>
+              : <><Download size={15} /> Exportar PDF</>}
           </button>
         </div>
 

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Loader2, Check, X } from 'lucide-react';
 import { analysisApi, getErrorMessage } from '../services/api';
@@ -13,6 +13,8 @@ const STEPS = [
   'Generación de explicaciones',
 ];
 
+const POLL_MS = 10000;
+
 export default function Processing() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -22,15 +24,28 @@ export default function Processing() {
   const [error, setError] = useState('');
   const [cancelError, setCancelError] = useState('');
 
+  const applyDetail = useCallback((data) => {
+    if (data.status === 'completed') navigate(`/mindmap/${id}`, { replace: true });
+    else if (data.status === 'failed') { setStatus('failed'); setError(data.error_message || 'Error en el procesamiento'); }
+    else if (data.status === 'cancelled') setStatus('cancelled');
+    else setCurrentStep((s) => Math.max(s, data.processing_step || 0));
+  }, [id, navigate]);
+
   // Estado inicial desde la API (por si el análisis ya avanzó antes de abrir esta pantalla).
   useEffect(() => {
-    analysisApi.detail(id).then(({ data }) => {
-      if (data.status === 'completed') navigate(`/mindmap/${id}`, { replace: true });
-      else if (data.status === 'failed') { setStatus('failed'); setError(data.error_message || 'Error en el procesamiento'); }
-      else if (data.status === 'cancelled') setStatus('cancelled');
-      else setCurrentStep(data.processing_step || 0);
-    }).catch(() => setError('No se pudo cargar el estado del análisis.'));
-  }, [id, navigate]);
+    analysisApi.detail(id).then(({ data }) => applyDetail(data))
+      .catch(() => setError('No se pudo cargar el estado del análisis.'));
+  }, [id, applyDetail]);
+
+  // El WebSocket puede perder eventos (si el servidor se reinicia o el análisis corre en otra
+  // instancia), así que mientras siga en proceso también se consulta el estado periódicamente.
+  useEffect(() => {
+    if (status !== 'processing') return undefined;
+    const timer = setInterval(() => {
+      analysisApi.detail(id).then(({ data }) => applyDetail(data)).catch(() => {});
+    }, POLL_MS);
+    return () => clearInterval(timer);
+  }, [status, id, applyDetail]);
 
   // Avance en vivo desde el WebSocket global (progressStore).
   useEffect(() => {

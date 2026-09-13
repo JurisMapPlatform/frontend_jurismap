@@ -14,11 +14,11 @@ const statusMap = {
 
 export default function Home() {
   const user = useAuthStore((s) => s.user);
-  const { analyses, stats, fetchAnalyses, fetchStats } = useAnalysisStore();
+  const { analyses, stats, loading, error, fetchAnalyses, fetchStats } = useAnalysisStore();
   const navigate = useNavigate();
 
   useEffect(() => {
-    fetchAnalyses({ limit: 4 });
+    fetchAnalyses({ page_size: 4 });
     fetchStats();
   }, []);
 
@@ -67,8 +67,16 @@ export default function Home() {
             <h2 className={styles.sectionTitle}>Análisis recientes</h2>
             <button className={styles.seeAll} onClick={() => navigate('/history')}>Ver todos →</button>
           </div>
-          {recentAnalyses.length === 0 ? (
-            <p className={styles.empty}>Aún no has creado análisis.</p>
+          {/* HU-31 y HU-33: indicador mientras carga y error visible si falla, en vez del estado vacío. */}
+          {loading && recentAnalyses.length === 0 ? (
+            <p className={styles.empty}>Cargando tus análisis…</p>
+          ) : error && recentAnalyses.length === 0 ? (
+            <div className={styles.empty}>
+              <p>{error}</p>
+              <button className={styles.seeAll} onClick={() => fetchAnalyses({ page_size: 4 })}>Reintentar</button>
+            </div>
+          ) : recentAnalyses.length === 0 ? (
+            <p className={styles.empty}>Aún no has creado análisis. Empieza con «Nuevo análisis».</p>
           ) : (
             <div className={styles.analysisList}>
               {recentAnalyses.map((a) => {

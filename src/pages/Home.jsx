@@ -8,6 +8,7 @@ import styles from './Home.module.css';
 const statusMap = {
   completed: { label: 'Listo', color: 'var(--success)' },
   processing: { label: 'Procesando', color: 'var(--processing)' },
+  pending: { label: 'En cola', color: 'var(--processing)' },
   failed: { label: 'Error', color: 'var(--error)' },
   cancelled: { label: 'Cancelado', color: 'var(--text-muted)' },
 };
@@ -81,8 +82,10 @@ export default function Home() {
             <div className={styles.analysisList}>
               {recentAnalyses.map((a) => {
                 const st = statusMap[a.status] || statusMap.completed;
+                // Un análisis que aún no termina abre su pantalla de progreso (donde se puede cancelar).
+                const destino = ['pending', 'processing'].includes(a.status) ? `/processing/${a.id}` : `/mindmap/${a.id}`;
                 return (
-                  <div key={a.id} className={styles.analysisItem} onClick={() => navigate(`/mindmap/${a.id}`)}>
+                  <div key={a.id} className={styles.analysisItem} onClick={() => navigate(destino)}>
                     <div className={styles.analysisInfo}>
                       <span className={styles.analysisTitle}>{a.title || 'Análisis sin nombre'}</span>
                       <span className={styles.analysisMeta}>{a.document_count || 0} docs</span>

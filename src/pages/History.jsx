@@ -8,6 +8,8 @@ import styles from './History.module.css';
 const statusConfig = {
   completed: { label: 'Listo', color: 'var(--success)', bg: 'var(--success-bg)' },
   processing: { label: 'Procesando', color: 'var(--processing)', bg: 'var(--processing-bg)' },
+  // Recién creado, antes del primer paso: no debe aparecer como "Listo".
+  pending: { label: 'En cola', color: 'var(--processing)', bg: 'var(--processing-bg)' },
   failed: { label: 'Error', color: 'var(--error)', bg: 'var(--error-bg)' },
   cancelled: { label: 'Cancelado', color: 'var(--text-muted)', bg: 'var(--bg-primary)' },
 };

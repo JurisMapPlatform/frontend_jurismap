@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Loader2, Check, X } from 'lucide-react';
-import { analysisApi } from '../services/api';
+import { analysisApi, getErrorMessage } from '../services/api';
 import useProgressStore from '../store/progressStore';
 import styles from './Processing.module.css';
 
@@ -20,6 +20,7 @@ export default function Processing() {
   const [currentStep, setCurrentStep] = useState(0);
   const [status, setStatus] = useState('processing');
   const [error, setError] = useState('');
+  const [cancelError, setCancelError] = useState('');
 
   // Estado inicial desde la API (por si el análisis ya avanzó antes de abrir esta pantalla).
   useEffect(() => {
@@ -46,8 +47,14 @@ export default function Processing() {
   }, [ev, id, navigate]);
 
   const handleCancel = async () => {
-    await analysisApi.cancel(id);
-    navigate('/');
+    setCancelError('');
+    try {
+      await analysisApi.cancel(id);
+      navigate('/');
+    } catch (err) {
+      // HU-32: p. ej. el análisis terminó justo antes de cancelar; se indica qué hacer.
+      setCancelError(getErrorMessage(err, 'No se pudo cancelar el análisis. Actualiza la página para ver su estado actual.'));
+    }
   };
 
   const progress = Math.round((currentStep / STEPS.length) * 100);
@@ -102,6 +109,9 @@ export default function Processing() {
           <button className={styles.cancelBtn} onClick={handleCancel}>
             <X size={14} /> Cancelar análisis
           </button>
+        )}
+        {cancelError && (
+          <p className={styles.sub} style={{ marginTop: 14, marginBottom: 0, color: 'var(--error)' }}>{cancelError}</p>
         )}
         {status === 'failed' && (
           <button className={styles.retryBtn} onClick={() => navigate('/analysis')}>

@@ -17,7 +17,7 @@ function getStrength(pw) {
 }
 
 const strengthColors = ['#dc2626', '#f59e0b', '#f59e0b', '#16a34a', '#16a34a'];
-const strengthLabels = ['', 'Débil', 'Regular', 'Buena', 'Fuerte'];
+const strengthLabels = ['Muy débil', 'Débil', 'Regular', 'Buena', 'Fuerte'];
 
 export default function Register() {
   const [fullName, setFullName] = useState('');
@@ -99,10 +99,16 @@ export default function Register() {
             </button>
           </div>
           {password && (
-            <div className={s.strengthBar} style={{
-              width: `${strength * 25}%`,
-              background: strengthColors[strength],
-            }} />
+            <>
+              <div className={s.strengthBar} style={{
+                width: `${strength * 25}%`,
+                background: strengthColors[strength],
+              }} />
+              {/* La barra sola no dice qué significa su color: se acompaña con la etiqueta. */}
+              <div style={{ fontSize: 12, fontWeight: 600, marginTop: 4, color: strengthColors[strength] }}>
+                Seguridad de la contraseña: {strengthLabels[strength]}
+              </div>
+            </>
           )}
           {fieldErrors.password && <div className={s.error}>{fieldErrors.password}</div>}
         </div>

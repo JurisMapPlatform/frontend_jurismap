@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Clock, Download, HelpCircle, ArrowRight } from 'lucide-react';
+import { Plus, Clock, Download } from 'lucide-react';
 import useAuthStore from '../store/authStore';
 import useAnalysisStore from '../store/analysisStore';
 import styles from './Home.module.css';
@@ -25,6 +25,8 @@ export default function Home() {
 
   const firstName = user?.full_name?.split(' ')[0] || 'Estudiante';
   const recentAnalyses = analyses.slice(0, 4);
+  // «Exportar último»: el análisis terminado más reciente (la lista viene ordenada por fecha).
+  const ultimoListo = analyses.find((a) => a.status === 'completed');
   const today = new Date().toLocaleDateString('es-PE', { weekday: 'long', day: 'numeric', month: 'long' });
 
   return (
@@ -82,8 +84,9 @@ export default function Home() {
             <div className={styles.analysisList}>
               {recentAnalyses.map((a) => {
                 const st = statusMap[a.status] || statusMap.completed;
-                // Un análisis que aún no termina abre su pantalla de progreso (donde se puede cancelar).
-                const destino = ['pending', 'processing'].includes(a.status) ? `/processing/${a.id}` : `/mindmap/${a.id}`;
+                // Solo un análisis terminado tiene mapa. Los demás abren su pantalla de estado: en curso
+                // (se puede cancelar), fallido (con el motivo y «Reintentar») o cancelado.
+                const destino = a.status === 'completed' ? `/mindmap/${a.id}` : `/processing/${a.id}`;
                 return (
                   <div key={a.id} className={styles.analysisItem} onClick={() => navigate(destino)}>
                     <div className={styles.analysisInfo}>
@@ -109,7 +112,8 @@ export default function Home() {
             <button className={styles.actionCard} onClick={() => navigate('/history')}>
               <Clock size={18} /> <div><strong>Ver historial</strong><p>Accede a todos tus análisis guardados</p></div>
             </button>
-            <button className={styles.actionCard} disabled>
+            <button className={styles.actionCard} disabled={!ultimoListo}
+              onClick={() => ultimoListo && navigate(`/mindmap/${ultimoListo.id}?export=pdf`)}>
               <Download size={18} /> <div><strong>Exportar último</strong><p>Descarga tu último resultado como PDF</p></div>
             </button>
           </div>

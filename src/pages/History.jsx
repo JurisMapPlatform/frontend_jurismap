@@ -240,9 +240,9 @@ export default function History() {
               <h3>Exportar</h3>
               <div className={styles.exportBtns}>
                 <button className={styles.exportBtn} disabled={selected.status !== 'completed'}
-                  onClick={() => navigate(`/mindmap/${selected.id}`)}><Download size={14} /> Imagen (PNG)</button>
+                  onClick={() => navigate(`/mindmap/${selected.id}?export=png`)}><Download size={14} /> Imagen (PNG)</button>
                 <button className={styles.exportBtn} disabled={selected.status !== 'completed'}
-                  onClick={() => navigate(`/mindmap/${selected.id}`)}><FileText size={14} /> PDF completo</button>
+                  onClick={() => navigate(`/mindmap/${selected.id}?export=pdf`)}><FileText size={14} /> PDF completo</button>
               </div>
             </div>
           </>

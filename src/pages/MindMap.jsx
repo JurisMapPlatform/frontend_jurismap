@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import {
   ReactFlow, Background, Controls, MiniMap,
-  useNodesState, useEdgesState, useReactFlow, ReactFlowProvider,
+  useNodesState, useEdgesState, useReactFlow, ReactFlowProvider, useNodesInitialized,
   getNodesBounds, getViewportForBounds, Position,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
@@ -292,6 +292,8 @@ function MindMapInner() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { getNodes, getEdges } = useReactFlow();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const nodesInitialized = useNodesInitialized();
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [analysis, setAnalysis] = useState(null);
@@ -616,7 +618,8 @@ function MindMapInner() {
         if (ih <= availH || !tall) {
           // Mapa normal: una sola página horizontal, ajustado a la página (igual que antes).
           if (ih > availH) { ih = availH; iw = availH / ratio; }
-          pdf.addImage(img.dataUrl, 'PNG', (lW - iw) / 2, top, iw, ih);
+          // Compresión 'FAST': sin ella la imagen se incrusta sin comprimir y el PDF pesa varios MB.
+          pdf.addImage(img.dataUrl, 'PNG', (lW - iw) / 2, top, iw, ih, undefined, 'FAST');
         } else {
           // HU-21: mapa alto. Se reparte en varias páginas verticales a ancho completo, en lugar de
           // achicarlo hasta que no se lea. La imagen se incrusta una sola vez (alias) y cada página
@@ -757,6 +760,24 @@ function MindMapInner() {
     setRegenerating(false);
   };
 
+  // Exportación pedida desde el historial o el inicio (?export=png|pdf): se lanza sola cuando el mapa
+  // terminó de dibujarse (los nodos ya tienen su tamaño medido) y se quita el parámetro de la URL,
+  // para que al recargar no se vuelva a descargar.
+  const exportHandlers = useRef({});
+  useEffect(() => {
+    exportHandlers.current = { png: handleExportImage, pdf: handleExportPDF };
+  });
+  const autoExportLanzado = useRef(false);
+  useEffect(() => {
+    const tipo = searchParams.get('export');
+    if (!tipo || autoExportLanzado.current || !nodesInitialized || nodes.length === 0) return;
+    autoExportLanzado.current = true;
+    setTimeout(() => {
+      setSearchParams({}, { replace: true });
+      (exportHandlers.current[tipo] || exportHandlers.current.png)();
+    }, 800);
+  }, [searchParams, setSearchParams, nodesInitialized, nodes.length]);
+
   const minimapColor = (node) => {
     const t = node.data?.nodeType;
     if (t === 'central') return INK;
@@ -775,6 +796,37 @@ function MindMapInner() {
           <button className={styles.regenerateBtn} onClick={() => navigate('/history')}>
             Volver al historial
           </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Un análisis fallido, cancelado o en curso no tiene mapa: se explica qué pasó en lugar de mostrar
+  // un lienzo vacío con la opción de «regenerar» (que volvería a usar la IA sobre un análisis fallido).
+  if (analysis && analysis.status && analysis.status !== 'completed') {
+    const enCurso = ['pending', 'processing'].includes(analysis.status);
+    const titulo = analysis.status === 'failed' ? 'Este análisis no se completó'
+      : analysis.status === 'cancelled' ? 'Este análisis fue cancelado'
+      : 'Este análisis aún se está procesando';
+    const texto = analysis.status === 'failed'
+      ? `${analysis.error_message || 'Ocurrió un error durante el procesamiento.'} Puedes crear un nuevo análisis con el mismo documento.`
+      : analysis.status === 'cancelled'
+        ? 'Se detuvo antes de generar el mapa mental. Puedes crear un nuevo análisis cuando quieras.'
+        : 'El mapa mental estará listo en unos momentos.';
+    return (
+      <div className={styles.page}>
+        <AppHeader />
+        <div className={styles.loadErrorScreen}>
+          <h2 className={styles.loadErrorTitle}>{titulo}</h2>
+          <p className={styles.loadErrorText}>{texto}</p>
+          <div style={{ display: 'flex', gap: 10 }}>
+            <button className={styles.regenerateBtn} onClick={() => navigate(enCurso ? `/processing/${id}` : '/analysis')}>
+              {enCurso ? 'Ver progreso' : 'Nuevo análisis'}
+            </button>
+            <button className={styles.regenerateBtn} onClick={() => navigate('/history')}>
+              Volver al historial
+            </button>
+          </div>
         </div>
       </div>
     );

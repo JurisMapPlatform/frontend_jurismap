@@ -23,6 +23,14 @@ const IMAGE_WIDTH = 2048;
 const IMAGE_HEIGHT = 1536;
 const CANVAS_TIMEOUT_MS = 20000;
 const CANVAS_BG = '#eceff4';
+// HU-21: un mapa grande no se reduce por debajo de este zoom (el texto de los nodos quedaría ilegible).
+// En su lugar la imagen crece; como el navegador no rasteriza más de ~3 MP de una vez, se genera
+// por franjas y se unen en un canvas. Esos mapas se exportan al doble de resolución, para que el
+// texto se lea nítido al ampliar la imagen.
+const MIN_READABLE_ZOOM = 0.75;
+const MAX_TILE_PIXELS = 3_000_000;
+const LARGE_MAP_PIXEL_RATIO = 2;
+const EXPORT_PADDING = 0.2;
 
 const CATEGORY_ORDER = ['materia', 'partes', 'pretension', 'antecedentes', 'fundamentos', 'fallo', 'votos'];
 
@@ -502,24 +510,19 @@ function MindMapInner() {
     doSave();
   };
 
-  const getCanvasImage = async () => {
-    const currentNodes = getNodes();
-    if (currentNodes.length === 0) return null;
-    const bounds = getNodesBounds(currentNodes);
-    const viewport = getViewportForBounds(bounds, IMAGE_WIDTH, IMAGE_HEIGHT, 0.5, 2, 0.2);
-    const el = document.querySelector('.react-flow__viewport');
-    if (!el) return null;
+  // Rasteriza un recorte del lienzo (w x h) con la traslación y el zoom indicados.
+  const renderRegion = (el, w, h, tx, ty, zoom, pixelRatio) => {
     const render = toPng(el, {
       backgroundColor: CANVAS_BG,
-      width: IMAGE_WIDTH,
-      height: IMAGE_HEIGHT,
-      pixelRatio: 1,
+      width: w,
+      height: h,
+      pixelRatio,
       skipFonts: true,          // evita descargar/incrustar fuentes externas (fuente de 404 y lentitud)
       filter: (n) => n?.tagName !== 'IFRAME' && n?.tagName !== 'SCRIPT',
       style: {
-        width: `${IMAGE_WIDTH}px`,
-        height: `${IMAGE_HEIGHT}px`,
-        transform: `translate(${viewport.x}px, ${viewport.y}px) scale(${viewport.zoom})`,
+        width: `${w}px`,
+        height: `${h}px`,
+        transform: `translate(${tx}px, ${ty}px) scale(${zoom})`,
       },
     });
     // Timeout de seguridad: si el navegador no logra rasterizar, no dejamos la UI colgada.
@@ -529,15 +532,59 @@ function MindMapInner() {
     return Promise.race([render, timeout]);
   };
 
+  // Devuelve { dataUrl, width, height } con TODO el mapa visible (HU-21).
+  const getCanvasImage = async () => {
+    const visibles = getNodes().filter((n) => !n.hidden);
+    if (visibles.length === 0) return null;
+    const el = document.querySelector('.react-flow__viewport');
+    if (!el) return null;
+    const b = getNodesBounds(visibles);
+    const fitZoom = Math.min(
+      IMAGE_WIDTH / (b.width * (1 + EXPORT_PADDING)),
+      IMAGE_HEIGHT / (b.height * (1 + EXPORT_PADDING)),
+      2,
+    );
+
+    // Mapa normal: entra en 2048x1536 con un zoom legible (igual que antes).
+    if (fitZoom >= MIN_READABLE_ZOOM) {
+      const vp = getViewportForBounds(b, IMAGE_WIDTH, IMAGE_HEIGHT, MIN_READABLE_ZOOM, 2, EXPORT_PADDING);
+      const dataUrl = await renderRegion(el, IMAGE_WIDTH, IMAGE_HEIGHT, vp.x, vp.y, vp.zoom, 1);
+      return { dataUrl, width: IMAGE_WIDTH, height: IMAGE_HEIGHT };
+    }
+
+    // Mapa grande: zoom mínimo legible y una imagen del tamaño que haga falta, generada por franjas.
+    const zoom = MIN_READABLE_ZOOM;
+    const pr = LARGE_MAP_PIXEL_RATIO;
+    const width = Math.ceil(b.width * zoom * (1 + EXPORT_PADDING));
+    const height = Math.ceil(b.height * zoom * (1 + EXPORT_PADDING));
+    const tx = -b.x * zoom + (width - b.width * zoom) / 2;
+    const ty = -b.y * zoom + (height - b.height * zoom) / 2;
+    const band = Math.max(200, Math.floor(MAX_TILE_PIXELS / (width * pr * pr)));
+    const canvas = document.createElement('canvas');
+    canvas.width = width * pr;
+    canvas.height = height * pr;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = CANVAS_BG;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    for (let top = 0; top < height; top += band) {
+      const h = Math.min(band, height - top);
+      const part = new window.Image(); // `Image` a secas es el ícono de lucide-react importado arriba
+      part.src = await renderRegion(el, width, h, tx, ty - top, zoom, pr);
+      await part.decode();
+      ctx.drawImage(part, 0, top * pr);
+    }
+    return { dataUrl: canvas.toDataURL('image/png'), width: canvas.width, height: canvas.height };
+  };
+
   const handleExportImage = async () => {
     // HU-31: el botón indica que la imagen se está generando y vuelve a su estado al terminar.
     setExporting('image');
     try {
-      const dataUrl = await getCanvasImage();
-      if (!dataUrl) return;
+      const img = await getCanvasImage();
+      if (!img) return;
       const link = document.createElement('a');
       link.download = `${analysis?.title || 'mapa-mental'}.png`;
-      link.href = dataUrl;
+      link.href = img.dataUrl;
       link.click();
     } catch {
       setActionError('No se pudo exportar la imagen. Inténtalo de nuevo o usa «Exportar PDF».');
@@ -549,21 +596,43 @@ function MindMapInner() {
   const handleExportPDF = async () => {
     setExporting('pdf');
     try {
-      let dataUrl = null;
-      try { dataUrl = await getCanvasImage(); } catch { dataUrl = null; } // si la imagen falla, seguimos con el contenido
-      const pdf = new jsPDF({ unit: 'pt', format: 'a4', orientation: 'landscape' });
+      let img = null;
+      try { img = await getCanvasImage(); } catch { img = null; } // si la imagen falla, seguimos con el contenido
+      const tall = !!img && img.height > img.width;
+      const orientation = tall ? 'portrait' : 'landscape';
+      const pdf = new jsPDF({ unit: 'pt', format: 'a4', orientation });
 
-      // --- Página 1: mapa mental (horizontal, ajustado a la página) ---
+      // --- Primeras páginas: mapa mental ---
       const lW = pdf.internal.pageSize.getWidth();
       const lH = pdf.internal.pageSize.getHeight();
+      const titulo = analysis?.title || 'Mapa mental';
       pdf.setFont('helvetica', 'bold'); pdf.setFontSize(16); pdf.setTextColor(0, 0, 0);
-      pdf.text(analysis?.title || 'Mapa mental', 40, 40);
-      if (dataUrl) {
-        const availW = lW - 80, availH = lH - 80;
-        const ratio = IMAGE_HEIGHT / IMAGE_WIDTH;
+      pdf.text(titulo, 40, 40);
+      if (img) {
+        const top = 60;
+        const availW = lW - 80, availH = lH - top - 40;
+        const ratio = img.height / img.width;
         let iw = availW, ih = availW * ratio;
-        if (ih > availH) { ih = availH; iw = availH / ratio; }
-        pdf.addImage(dataUrl, 'PNG', (lW - iw) / 2, 60, iw, ih);
+        if (ih <= availH || !tall) {
+          // Mapa normal: una sola página horizontal, ajustado a la página (igual que antes).
+          if (ih > availH) { ih = availH; iw = availH / ratio; }
+          pdf.addImage(img.dataUrl, 'PNG', (lW - iw) / 2, top, iw, ih);
+        } else {
+          // HU-21: mapa alto. Se reparte en varias páginas verticales a ancho completo, en lugar de
+          // achicarlo hasta que no se lea. La imagen se incrusta una sola vez (alias) y cada página
+          // muestra su franja; márgenes en blanco tapan lo que queda fuera de la franja.
+          const pages = Math.ceil(ih / availH);
+          for (let i = 0; i < pages; i++) {
+            if (i > 0) pdf.addPage('a4', orientation);
+            // Compresión 'FAST': sin ella, la imagen grande se incrusta sin comprimir (más de 20 MB).
+            pdf.addImage(img.dataUrl, 'PNG', 40, top - i * availH, iw, ih, 'mapa-mental', 'FAST');
+            pdf.setFillColor(255, 255, 255);
+            pdf.rect(0, 0, lW, top - 4, 'F');
+            pdf.rect(0, top + availH, lW, lH - top - availH, 'F');
+            pdf.setFont('helvetica', 'bold'); pdf.setFontSize(i === 0 ? 16 : 12); pdf.setTextColor(0, 0, 0);
+            pdf.text(i === 0 ? titulo : `${titulo} (mapa, parte ${i + 1} de ${pages})`, 40, 40);
+          }
+        }
       } else {
         pdf.setFont('helvetica', 'italic'); pdf.setFontSize(11); pdf.setTextColor(120, 120, 120);
         pdf.text('No se pudo generar la imagen del mapa; a continuación se incluye el contenido.', 40, 80);

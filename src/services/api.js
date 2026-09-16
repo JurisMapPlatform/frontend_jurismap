@@ -134,4 +134,23 @@ export function connectWebSocket(token, onMessage) {
   return ws;
 }
 
+// El backend vive en Cloud Run y se apaga solo cuando nadie lo usa, asi que la primera peticion
+// tras un rato de inactividad espera a que el servidor vuelva a encenderse (medido: 7 a 10 s).
+// Al abrir una pantalla de sesion se le avisa cuanto antes, sin esperar respuesta: el servidor
+// arranca mientras la persona escribe sus datos y al pulsar el boton ya esta listo.
+const WARM_UP_MS = 60000;
+let ultimoAviso = 0;
+
+export function warmUpBackend() {
+  // Una sola vez por minuto: evita repetirlo al ir de iniciar sesion a registro o al volver a montar.
+  const ahora = Date.now();
+  if (ahora - ultimoAviso < WARM_UP_MS) return;
+  ultimoAviso = ahora;
+  try {
+    fetch(`${API_BASE}/health`, { method: 'GET', cache: 'no-store' }).catch(() => {});
+  } catch {
+    // Si el navegador no puede lanzar la peticion, no pasa nada: solo se pierde el adelanto.
+  }
+}
+
 export default api;

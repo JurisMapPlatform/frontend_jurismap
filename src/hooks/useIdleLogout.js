@@ -3,8 +3,12 @@ import { useEffect, useRef } from 'react';
 // HU-05: cierra la sesión automáticamente tras N minutos sin actividad del usuario.
 // Cualquier interacción (mouse, teclado, scroll, toque) reinicia el temporizador.
 export default function useIdleLogout(onIdle, minutes = 30) {
+  // La referencia guarda siempre la última función recibida, pero se actualiza en un efecto
+  // (no al renderizar) para no leer ni escribir la referencia durante el render.
   const cb = useRef(onIdle);
-  cb.current = onIdle;
+  useEffect(() => {
+    cb.current = onIdle;
+  });
 
   useEffect(() => {
     let timer;

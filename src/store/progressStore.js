@@ -10,8 +10,11 @@ const useProgressStore = create((set) => ({
   push: (msg) => set((s) => {
     if (!msg || !msg.analysis_id) return s;
     const done = msg.status === 'completed' || msg.status === 'failed';
+    // El mensaje final no trae paso: se conserva el último conocido para que el avance no retroceda.
+    const previo = s.byId[msg.analysis_id];
+    const step = msg.step ?? previo?.step;
     return {
-      byId: { ...s.byId, [msg.analysis_id]: { step: msg.step, status: msg.status, error: msg.error } },
+      byId: { ...s.byId, [msg.analysis_id]: { step, status: msg.status, error: msg.error } },
       toast: done ? { analysis_id: msg.analysis_id, status: msg.status } : s.toast,
     };
   }),

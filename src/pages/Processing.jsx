@@ -14,27 +14,35 @@ const STEPS = [
 ];
 
 const POLL_MS = 10000;
+const ESTADOS_FINALES = ['completed', 'failed', 'cancelled'];
 
 export default function Processing() {
   const { id } = useParams();
   const navigate = useNavigate();
   const ev = useProgressStore((s) => s.byId[id]);
-  const [currentStep, setCurrentStep] = useState(0);
-  const [status, setStatus] = useState('processing');
-  const [error, setError] = useState('');
+  const [apiStep, setApiStep] = useState(0);
+  const [apiStatus, setApiStatus] = useState('processing');
+  const [apiError, setApiError] = useState('');
   const [cancelError, setCancelError] = useState('');
+
+  // El avance en vivo (WebSocket) y el consultado a la API se combinan al renderizar. Antes el
+  // evento se copiaba al estado local dentro de un efecto, lo que encadenaba renders de más.
+  const evStatus = ESTADOS_FINALES.includes(ev?.status) ? ev.status : null;
+  const status = evStatus || apiStatus;
+  const currentStep = Math.max(apiStep, ev?.step || 0);
+  const error = evStatus === 'failed' ? (ev.error || 'Error en el procesamiento') : apiError;
 
   const applyDetail = useCallback((data) => {
     if (data.status === 'completed') navigate(`/mindmap/${id}`, { replace: true });
-    else if (data.status === 'failed') { setStatus('failed'); setError(data.error_message || 'Error en el procesamiento'); }
-    else if (data.status === 'cancelled') setStatus('cancelled');
-    else setCurrentStep((s) => Math.max(s, data.processing_step || 0));
+    else if (data.status === 'failed') { setApiStatus('failed'); setApiError(data.error_message || 'Error en el procesamiento'); }
+    else if (data.status === 'cancelled') setApiStatus('cancelled');
+    else setApiStep((s) => Math.max(s, data.processing_step || 0));
   }, [id, navigate]);
 
   // Estado inicial desde la API (por si el análisis ya avanzó antes de abrir esta pantalla).
   useEffect(() => {
     analysisApi.detail(id).then(({ data }) => applyDetail(data))
-      .catch(() => setError('No se pudo cargar el estado del análisis.'));
+      .catch(() => setApiError('No se pudo cargar el estado del análisis.'));
   }, [id, applyDetail]);
 
   // El WebSocket puede perder eventos (si el servidor se reinicia o el análisis corre en otra
@@ -47,19 +55,12 @@ export default function Processing() {
     return () => clearInterval(timer);
   }, [status, id, applyDetail]);
 
-  // Avance en vivo desde el WebSocket global (progressStore).
+  // Al terminar bien, se muestra el aviso un momento antes de abrir el mapa mental.
   useEffect(() => {
-    if (!ev) return undefined;
-    if (ev.step) setCurrentStep(ev.step);
-    if (ev.status === 'failed') { setStatus('failed'); setError(ev.error || 'Error en el procesamiento'); }
-    if (ev.status === 'cancelled') setStatus('cancelled');
-    if (ev.status === 'completed') {
-      setStatus('completed');
-      const t = setTimeout(() => navigate(`/mindmap/${id}`, { replace: true }), 1500);
-      return () => clearTimeout(t);
-    }
-    return undefined;
-  }, [ev, id, navigate]);
+    if (status !== 'completed') return undefined;
+    const t = setTimeout(() => navigate(`/mindmap/${id}`, { replace: true }), 1500);
+    return () => clearTimeout(t);
+  }, [status, id, navigate]);
 
   const handleCancel = async () => {
     setCancelError('');

@@ -297,7 +297,11 @@ function MindMapInner() {
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [analysis, setAnalysis] = useState(null);
-  const [selectedNode, setSelectedNode] = useState(null);
+  // Nodo cuyo modal está abierto. No es el nodo seleccionado del lienzo: ese lo maneja React Flow
+  // (queda resaltado aunque se cierre el modal) y es donde se agrega el nodo generado con IA (HU-17).
+  const [modalNode, setModalNode] = useState(null);
+  // HU-17: nodo al que se agregará el que se genere con IA (el resaltado; si no hay ninguno, el central).
+  const nodoDestino = nodes.find((n) => n.selected && !n.hidden) || null;
   const [contextMenu, setContextMenu] = useState(null);
   const [prompt, setPrompt] = useState('');
   const [generating, setGenerating] = useState(false);
@@ -355,7 +359,7 @@ function MindMapInner() {
   }, [onNodesChange, doSave]);
 
   const onNodeClick = useCallback((_, node) => {
-    setSelectedNode(node);
+    setModalNode(node);
     setContextMenu(null);
   }, []);
 
@@ -365,7 +369,7 @@ function MindMapInner() {
   }, []);
 
   const onPaneClick = useCallback(() => {
-    setSelectedNode(null);
+    setModalNode(null);
     setContextMenu(null);
   }, []);
 
@@ -434,7 +438,7 @@ function MindMapInner() {
     setNodes((nds) => nds.filter((n) => !removed.has(n.id)));
     setEdges((eds) => eds.filter((e) => !removed.has(e.source) && !removed.has(e.target)));
     setCollapsed((prev) => new Set([...prev].filter((cid) => !removed.has(cid))));
-    setSelectedNode((sel) => (sel && removed.has(sel.id) ? null : sel));
+    setModalNode((sel) => (sel && removed.has(sel.id) ? null : sel));
   };
 
   const handleGenerateNode = async () => {
@@ -447,14 +451,42 @@ function MindMapInner() {
     setGenerating(true);
     try {
       const body = { prompt };
-      if (selectedNode?.id) body.parent_node_id = selectedNode.id;
+      // HU-17: el nodo nuevo cuelga del nodo resaltado en el lienzo. Antes se tomaba del nodo del modal,
+      // pero el modal se cierra para poder escribir el prompt y el nodo terminaba siempre en el central.
+      const destino = getNodes().find((n) => n.selected && !n.hidden);
+      if (destino) body.parent_node_id = destino.id;
       const { data } = await mindmapApi.generateNode(id, body);
       if (data.node) {
         const current = getNodes();
-        const parent = current.find((n) => n.id === data.edge?.source);
-        const pos = parent
-          ? { x: parent.position.x + 300, y: parent.position.y + 60 }
-          : { x: 0, y: 0 };
+        const parentId = data.edge?.source;
+        const parent = current.find((n) => n.id === parentId);
+        // Se ubica como el resto del mapa: en la columna de sus hermanos, justo debajo del último (o una
+        // columna a la derecha del padre si aún no tiene hijos).
+        const todasLasAristas = getEdges();
+        const hermanos = todasLasAristas.filter((e) => e.source === parentId)
+          .map((e) => current.find((n) => n.id === e.target)).filter(Boolean);
+        const ocupado = (x, y) => current.some((n) => Math.abs(n.position.x - x) < 170
+          && y < n.position.y + (n.measured?.height ?? 45) + 12 && n.position.y < y + 45 + 12);
+        let pos = { x: 0, y: 0 };
+        let hacerEspacio = null;
+        if (hermanos.length || parent) {
+          const x = hermanos.length ? hermanos[0].position.x : parent.position.x + 300;
+          const y = hermanos.length ? Math.max(...hermanos.map((h) => h.position.y)) + 70 : parent.position.y;
+          pos = { x, y };
+          // Si ese lugar ya lo ocupa otra rama, se hace espacio como al insertar una fila: todo lo que está a
+          // esa altura o más abajo baja 70 px, salvo el padre y sus antecesores. Así el nodo queda junto a sus
+          // hermanos y no encima de otro ni perdido en otra rama.
+          if (ocupado(x, y)) {
+            const fijos = new Set([parentId]);
+            for (let a = parentId; a;) {
+              a = todasLasAristas.find((e) => e.target === a)?.source;
+              if (a) fijos.add(a);
+            }
+            hacerEspacio = { desde: y - 12, fijos };
+          }
+        }
+        // Si la rama estaba colapsada se expande, para que el nodo nuevo se vea junto a sus hermanos.
+        if (parentId && collapsed.has(parentId)) toggleCollapse(parentId);
         const rawNew = { ...data.node, type: data.node.type || 'ai_generated' };
         const rfNode = {
           id: String(data.node.id),
@@ -470,7 +502,11 @@ function MindMapInner() {
           },
           style: buildNodeStyle(rawNew),
         };
-        setNodes((nds) => [...nds, rfNode]);
+        setNodes((nds) => [
+          ...nds.map((n) => (hacerEspacio && !hacerEspacio.fijos.has(n.id) && n.position.y >= hacerEspacio.desde
+            ? { ...n, position: { ...n.position, y: n.position.y + 70 } } : n)),
+          rfNode,
+        ]);
         if (data.edge) {
           setEdges((eds) => [...eds, {
             id: `e-ai-${data.node.id}`,
@@ -917,6 +953,11 @@ function MindMapInner() {
               onChange={(e) => { setPrompt(e.target.value); if (promptError) setPromptError(''); }}
               placeholder="Ej.: Agrega un nodo sobre el voto singular del magistrado..." />
             {promptError && <div className={styles.fieldError}>{promptError}</div>}
+            <p className={styles.promptTarget}>
+              {nodoDestino
+                ? <>Se agregará a: <strong>{nodoDestino.data?.label}</strong></>
+                : 'Se agregará al nodo central. Haz clic en un nodo para elegir dónde agregarlo.'}
+            </p>
             <button className={styles.generateBtn} onClick={handleGenerateNode} disabled={generating}>
               <Plus size={16} /> {generating ? 'Generando...' : 'Generar nodo'}
             </button>
@@ -967,19 +1008,19 @@ function MindMapInner() {
             onRename={handleRename}
             onDelete={(nodeId) => { setConfirmDeleteNode({ id: nodeId, label: contextMenu.node.data?.label || '' }); setContextMenu(null); }}
             onToggleCollapse={toggleCollapse}
-            onViewExplanation={() => { setSelectedNode(contextMenu.node); setContextMenu(null); }}
+            onViewExplanation={() => { setModalNode(contextMenu.node); setContextMenu(null); }}
             onClose={() => setContextMenu(null)}
           />
         )}
       </div>
 
-      {selectedNode && (
+      {modalNode && (
         <NodeModal
-          node={selectedNode}
+          node={modalNode}
           analysisId={id}
           analysis={analysis}
           findings={analysis?.findings}
-          onClose={() => setSelectedNode(null)}
+          onClose={() => setModalNode(null)}
         />
       )}
 

@@ -233,6 +233,18 @@
   margin-top: 6px;
 }
 
+.promptTarget {
+  margin: 8px 0 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--text-secondary);
+}
+
+.promptTarget strong {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
 .generateBtn {
   display: flex;
   align-items: center;

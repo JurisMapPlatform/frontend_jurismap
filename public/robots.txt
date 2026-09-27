@@ -1,0 +1,15 @@
+# JurisMap - https://frontend-jurismap.vercel.app
+# Las páginas públicas pueden indexarse; las que requieren sesión, no, porque
+# corresponden a documentos y análisis de cada estudiante.
+
+User-agent: *
+Allow: /$
+Allow: /login
+Allow: /register
+Disallow: /analysis
+Disallow: /processing/
+Disallow: /history
+Disallow: /mindmap/
+Disallow: /verify-email
+Disallow: /reset-password
+Disallow: /forgot-password

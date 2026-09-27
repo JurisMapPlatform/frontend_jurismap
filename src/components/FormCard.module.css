@@ -167,6 +167,8 @@
 }
 
 .footerLink {
+  display: inline-block;
+  padding: 4px 2px;
   font-weight: 700;
   color: var(--gold-deep);
   text-decoration: underline;
@@ -187,6 +189,10 @@
 .smallLink {
   font-size: 12px;
   color: var(--text-secondary);
+  /* El area tactil debe alcanzar 24 px de alto; el texto por si solo medía 16. El relleno
+     vertical no altera la posicion del texto porque el enlace va alineado a la derecha. */
+  display: inline-block;
+  padding: 4px 0;
 }
 
 .smallLink:hover {

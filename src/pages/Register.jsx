@@ -77,22 +77,22 @@ export default function Register() {
 
       <form onSubmit={handleSubmit}>
         <div className={s.field}>
-          <label className={s.label}>Nombre completo</label>
-          <input className={s.input} value={fullName} onChange={(e) => setFullName(e.target.value)} />
+          <label className={s.label} htmlFor="reg-nombre">Nombre completo</label>
+          <input id="reg-nombre" name="name" autoComplete="name" className={s.input} value={fullName} onChange={(e) => setFullName(e.target.value)} />
           {fieldErrors.fullName && <div className={s.error}>{fieldErrors.fullName}</div>}
         </div>
 
         <div className={s.field}>
-          <label className={s.label}>Correo electrónico</label>
-          <input type="email" className={`${s.input} ${error ? s.inputError : ''}`} value={email}
+          <label className={s.label} htmlFor="reg-email">Correo electrónico</label>
+          <input id="reg-email" name="email" autoComplete="email" type="email" className={`${s.input} ${error ? s.inputError : ''}`} value={email}
             onChange={(e) => { setEmail(e.target.value); clearError(); }} />
           {fieldErrors.email && <div className={s.error}>{fieldErrors.email}</div>}
         </div>
 
         <div className={s.field}>
-          <label className={s.label}>Contraseña</label>
+          <label className={s.label} htmlFor="reg-password">Contraseña</label>
           <div className={s.passwordWrap}>
-            <input type={showPassword ? 'text' : 'password'} className={s.input} value={password} onChange={(e) => setPassword(e.target.value)} />
+            <input id="reg-password" name="new-password" autoComplete="new-password" type={showPassword ? 'text' : 'password'} className={s.input} value={password} onChange={(e) => setPassword(e.target.value)} />
             <button type="button" className={s.eyeBtn} onClick={() => setShowPassword((v) => !v)}
               aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'} title={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}>
               {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
@@ -114,9 +114,9 @@ export default function Register() {
         </div>
 
         <div className={s.field}>
-          <label className={s.label}>Confirmar contraseña</label>
+          <label className={s.label} htmlFor="reg-confirm">Confirmar contraseña</label>
           <div className={s.passwordWrap}>
-            <input type={showConfirm ? 'text' : 'password'} className={s.input} value={confirm} onChange={(e) => setConfirm(e.target.value)} />
+            <input id="reg-confirm" name="confirm-password" autoComplete="new-password" type={showConfirm ? 'text' : 'password'} className={s.input} value={confirm} onChange={(e) => setConfirm(e.target.value)} />
             <button type="button" className={s.eyeBtn} onClick={() => setShowConfirm((v) => !v)}
               aria-label={showConfirm ? 'Ocultar contraseña' : 'Mostrar contraseña'} title={showConfirm ? 'Ocultar contraseña' : 'Mostrar contraseña'}>
               {showConfirm ? <EyeOff size={18} /> : <Eye size={18} />}
@@ -126,8 +126,8 @@ export default function Register() {
         </div>
 
         <div className={s.checkRow}>
-          <input type="checkbox" checked={terms} onChange={(e) => setTerms(e.target.checked)} />
-          <span>Acepto los <a href="#">Términos y condiciones</a></span>
+          <input id="reg-terminos" type="checkbox" checked={terms} onChange={(e) => setTerms(e.target.checked)} />
+          <label htmlFor="reg-terminos">Acepto los <a href="#">Términos y condiciones</a></label>
         </div>
         {fieldErrors.terms && <div className={s.error}>{fieldErrors.terms}</div>}
 

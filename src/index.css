@@ -13,7 +13,9 @@
   --bg-subtle: #f4f6fa;
   --text-primary: #1b2c4a;
   --text-secondary: #5a6577;
-  --text-muted: #8d96a6;
+  /* Oscurecido de #8d96a6 a #6b7488: sobre fondo blanco el anterior daba una relacion de
+     contraste de 2,98:1 y el minimo exigido para texto normal es 4,5:1. El nuevo da 4,7:1. */
+  --text-muted: #6b7488;
   --border: #dbe0ea;
   --border-focus: #b1863a;
   --accent: #1b2c4a;

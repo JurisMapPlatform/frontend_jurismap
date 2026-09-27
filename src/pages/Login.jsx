@@ -75,8 +75,11 @@ export default function Login() {
 
       <form onSubmit={handleSubmit}>
         <div className={s.field}>
-          <label className={s.label}>Correo electrónico</label>
+          <label className={s.label} htmlFor="login-email">Correo electrónico</label>
           <input
+            id="login-email"
+            name="email"
+            autoComplete="email"
             type="email"
             className={`${s.input} ${error ? s.inputError : ''}`}
             value={email}
@@ -86,9 +89,12 @@ export default function Login() {
         </div>
 
         <div className={s.field}>
-          <label className={s.label}>Contraseña</label>
+          <label className={s.label} htmlFor="login-password">Contraseña</label>
           <div className={s.passwordWrap}>
             <input
+              id="login-password"
+              name="password"
+              autoComplete="current-password"
               type={showPassword ? 'text' : 'password'}
               className={`${s.input} ${error ? s.inputError : ''}`}
               value={password}

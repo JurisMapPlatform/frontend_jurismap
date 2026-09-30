@@ -160,12 +160,12 @@ export default function NewAnalysis() {
         {error && <div className={styles.errorMsg}>{error}</div>}
 
         <div className={styles.footer}>
-          <button className={styles.cancelBtn} onClick={() => navigate('/')}>← Cancelar</button>
+          <button className={styles.cancelBtn} onClick={() => navigate('/')}>Cancelar</button>
           <span className={styles.footerInfo}>
             Iniciar análisis ({validDocs.length} archivo{validDocs.length !== 1 ? 's' : ''} válido{validDocs.length !== 1 ? 's' : ''})
           </span>
           <button className={styles.startBtn} onClick={handleStart} disabled={loading || validDocs.length === 0}>
-            {loading ? 'Creando...' : 'Iniciar análisis ✓'}
+            {loading ? 'Creando...' : 'Iniciar análisis'}
           </button>
         </div>
       </div>

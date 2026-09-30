@@ -7,7 +7,7 @@ import styles from './Processing.module.css';
 
 const STEPS = [
   'Lectura de documentos',
-  'Clasificación con BETO',
+  'Clasificación con RoBERTalex',
   'Análisis con Gemini',
   'Construcción del mapa mental',
   'Generación de explicaciones',
@@ -89,7 +89,7 @@ export default function Processing() {
         </h1>
         <p className={styles.sub}>
           {status === 'processing' && 'La IA está analizando los documentos y construyendo la estructura del mapa.'}
-          {status === 'processing' && <><br />Esto puede tomar entre 15 y 60 segundos.</>}
+          {status === 'processing' && <><br />Esto puede tomar entre 1 a 2 minutos.</>}
           {status === 'completed' && 'Redirigiendo al mapa mental...'}
           {status === 'cancelled' && 'El procesamiento fue detenido.'}
           {status === 'failed' && error}

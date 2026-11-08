@@ -1,13 +1,18 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Check, AlertTriangle, X, ArrowRight } from 'lucide-react';
 import useAuthStore from '../store/authStore';
 import useProgressStore from '../store/progressStore';
-import { connectWebSocket } from '../services/api';
+import { connectWebSocket, analysisApi } from '../services/api';
 
 // HU-29: escucha global de progreso. Mantiene UNA sola conexión WebSocket mientras hay sesión
 // y muestra una notificación (toast) cuando cualquier análisis termina o falla, sin importar en
-// qué página esté el usuario.
+// qué página esté el usuario. La notificación queda visible hasta que el usuario la cierra o pulsa
+// su botón (antes se cerraba sola a los 12 s y era fácil no verla; WCAG 2.2.1, tiempo ajustable).
+// Como respaldo del WebSocket, mientras haya análisis en curso se consulta su estado cada 15 s.
+const POLL_MS = 15000;
+const EN_CURSO = ['pending', 'processing'];
+const TERMINADO = ['completed', 'failed'];
 export default function ProgressListener() {
   const token = useAuthStore((s) => s.token);
   const toast = useProgressStore((s) => s.toast);
@@ -34,6 +39,62 @@ export default function ProgressListener() {
     };
   }, [token, push]);
 
+  // Respaldo del WebSocket (HU-29): si un mensaje se pierde (reconexión, red, servidor reiniciado),
+  // la consulta periódica detecta igual que el análisis terminó y muestra la notificación.
+  const activos = useRef(new Set());   // análisis que sabemos en curso
+  const avisados = useRef(new Set());  // análisis ya notificados (por WebSocket o por consulta)
+  const byId = useProgressStore((s) => s.byId);
+
+  // Un análisis entra a seguimiento al abrir su pantalla de procesamiento o al llegar su avance.
+  useEffect(() => {
+    const m = location.pathname.match(/^\/processing\/([^/]+)/);
+    if (m && !avisados.current.has(m[1])) activos.current.add(m[1]);
+  }, [location.pathname]);
+  useEffect(() => {
+    Object.entries(byId).forEach(([id, ev]) => {
+      if (EN_CURSO.includes(ev.status) && !avisados.current.has(id)) activos.current.add(id);
+    });
+  }, [byId]);
+
+  // Lo que ya se notificó por WebSocket no se vuelve a notificar desde la consulta.
+  useEffect(() => {
+    if (!toast) return;
+    avisados.current.add(toast.analysis_id);
+    activos.current.delete(toast.analysis_id);
+  }, [toast]);
+
+  useEffect(() => {
+    if (!token) return undefined;
+    let vivo = true;
+    let primera = true;
+    const revisar = async () => {
+      // Solo se consulta si hay algo en curso (o al iniciar, para descubrir análisis ya en proceso),
+      // así una pestaña abierta sin análisis pendientes no mantiene el servidor encendido.
+      if (!primera && activos.current.size === 0) return;
+      const inicial = primera;
+      primera = false;
+      try {
+        const { data } = await analysisApi.list({ page: 1, page_size: 10 });
+        if (!vivo) return;
+        (data.items || []).forEach((a) => {
+          if (EN_CURSO.includes(a.status)) {
+            if (!avisados.current.has(a.id)) activos.current.add(a.id);
+          } else if (activos.current.has(a.id)) {
+            activos.current.delete(a.id);
+            if (TERMINADO.includes(a.status) && !inicial && !avisados.current.has(a.id)) {
+              push({ analysis_id: a.id, status: a.status });
+            }
+          }
+        });
+      } catch {
+        // Sin conexión: se reintenta en la siguiente vuelta.
+      }
+    };
+    revisar();
+    const t = setInterval(revisar, POLL_MS);
+    return () => { vivo = false; clearInterval(t); };
+  }, [token, push]);
+
   // Si el usuario ya está viendo ese análisis (procesándose o su mapa), no lo molestamos.
   useEffect(() => {
     if (!toast) return;
@@ -42,13 +103,6 @@ export default function ProgressListener() {
       clearToast();
     }
   }, [toast, location.pathname, clearToast]);
-
-  // Auto-descartar el toast tras unos segundos.
-  useEffect(() => {
-    if (!toast) return undefined;
-    const t = setTimeout(clearToast, 12000);
-    return () => clearTimeout(t);
-  }, [toast, clearToast]);
 
   if (!token || !toast) return null;
 

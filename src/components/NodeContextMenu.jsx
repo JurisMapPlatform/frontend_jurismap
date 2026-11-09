@@ -28,7 +28,7 @@ export default function NodeContextMenu({ x, y, node, isCollapsed, onRename, onD
           </div>
         ) : (
           <>
-            {node.data?.nodeType !== 'category' && (
+            {!['category', 'central'].includes(node.data?.nodeType) && (
               <button className={styles.menuItem} onClick={onViewExplanation}>
                 <Eye size={14} /> Ver explicación
               </button>

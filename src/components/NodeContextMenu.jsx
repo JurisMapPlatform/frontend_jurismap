@@ -28,9 +28,11 @@ export default function NodeContextMenu({ x, y, node, isCollapsed, onRename, onD
           </div>
         ) : (
           <>
-            <button className={styles.menuItem} onClick={onViewExplanation}>
-              <Eye size={14} /> Ver explicación
-            </button>
+            {node.data?.nodeType !== 'category' && (
+              <button className={styles.menuItem} onClick={onViewExplanation}>
+                <Eye size={14} /> Ver explicación
+              </button>
+            )}
             <button className={styles.menuItem} onClick={() => setRenaming(true)}>
               <Pencil size={14} /> Renombrar nodo
             </button>

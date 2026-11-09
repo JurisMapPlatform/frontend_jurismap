@@ -359,8 +359,11 @@ function MindMapInner() {
   }, [onNodesChange, doSave]);
 
   const onNodeClick = useCallback((_, node) => {
-    setModalNode(node);
     setContextMenu(null);
+    // Las categorías solo son títulos (no tienen explicación): el clic solo las selecciona, para
+    // poder generar un nodo con IA debajo de ellas sin que se abra un modal vacío (CP039).
+    if (node.data?.nodeType === 'category') return;
+    setModalNode(node);
   }, []);
 
   const onNodeContextMenu = useCallback((event, node) => {

@@ -213,7 +213,7 @@ function layoutTree(rawNodes, rawEdges) {
   return rawNodes;
 }
 
-function transformNodes(rawNodes, rawEdges) {
+export function transformNodes(rawNodes, rawEdges) {
   const hasPositions = rawNodes.some(
     (n) => n.position && typeof n.position.x === 'number' && (n.position.x !== 0 || n.position.y !== 0)
   );
@@ -272,7 +272,7 @@ function edgeStyle(targetRawNode) {
   };
 }
 
-function transformEdges(rawEdges, rawNodes = []) {
+export function transformEdges(rawEdges, rawNodes = []) {
   const byId = {};
   rawNodes.forEach((n) => { byId[String(n.id)] = n; });
   return rawEdges.map((e, i) => ({

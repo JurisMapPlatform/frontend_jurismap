@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Search, Plus, Trash2, Download, ArrowRight, FileText, Pencil, Check, Loader2, RefreshCw } from 'lucide-react';
 import useAnalysisStore from '../store/analysisStore';
 import { analysisApi, getErrorMessage } from '../services/api';
+import MapPreview from '../components/MapPreview';
 import styles from './History.module.css';
 
 const statusConfig = {
@@ -227,9 +228,14 @@ export default function History() {
               <h3>Vista previa del mapa</h3>
               <div className={styles.previewPlaceholder}>
                 {selected.status === 'completed' ? (
-                  <button className={styles.openMapBtn} onClick={() => navigate(`/mindmap/${selected.id}`)}>
-                    Abrir mapa completo →
-                  </button>
+                  <>
+                    <div className={styles.previewMap}>
+                      <MapPreview analysisId={selected.id} version={selected.updated_at} />
+                    </div>
+                    <button className={styles.openMapBtn} onClick={() => navigate(`/mindmap/${selected.id}`)}>
+                      Abrir mapa completo →
+                    </button>
+                  </>
                 ) : (
                   <p>Mapa no disponible</p>
                 )}
